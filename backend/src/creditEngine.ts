@@ -57,6 +57,143 @@ export class CreditEngine {
   }
 
   /**
+   * Philippine Time (UTC+8) Quota Day Calculation.
+   * Daily quota resets every day at 4:00 PM Philippine Time (Midnight Pacific Time).
+   */
+  public getPhilippineQuotaDay(): string {
+    const now = new Date();
+    // UTC+8 offset in ms
+    const phTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const phHour = phTime.getUTCHours();
+    
+    // If before 4:00 PM (16:00), it belongs to previous quota day
+    if (phHour < 16) {
+      phTime.setUTCDate(phTime.getUTCDate() - 1);
+    }
+    return phTime.toISOString().split('T')[0];
+  }
+
+  /**
+   * Returns exact Date of the next 4:00 PM Philippine Time (UTC+8)
+   */
+  public getNext4PmPhilippineTime(): Date {
+    const now = new Date();
+    const phTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+    const next4Pm = new Date(phTime);
+    
+    if (phTime.getUTCHours() >= 16) {
+      next4Pm.setUTCDate(next4Pm.getUTCDate() + 1);
+    }
+    next4Pm.setUTCHours(16, 0, 0, 0);
+
+    // Convert back from PH local time to UTC
+    return new Date(next4Pm.getTime() - 8 * 60 * 60 * 1000);
+  }
+
+  /**
+   * Verifies if user has sufficient image upload allowance based on tier.
+   * Free Tier: 3 Image Uploads LIFETIME
+   * Starter Plan: 10 Image Uploads per day (resets 4:00 PM PH Time)
+   * Basic Plan: 20 Image Uploads per day (resets 4:00 PM PH Time)
+   * Pro Plan: 50 Image Uploads per day (resets 4:00 PM PH Time)
+   */
+  public verifyImageUploadAllowance(userId: string, imageCount = 1): {
+    allowed: boolean;
+    reason?: string;
+    tier: string;
+    image_used_lifetime: number;
+    image_used_today: number;
+    remaining: number;
+    maxAllowed: number;
+  } {
+    const user = db.users.get(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const currentQuotaDay = this.getPhilippineQuotaDay();
+    if (user.last_image_upload_date !== currentQuotaDay) {
+      user.image_used_today = 0;
+      user.last_image_upload_date = currentQuotaDay;
+      db.users.set(userId, user);
+    }
+
+    user.image_used_lifetime = user.image_used_lifetime || 0;
+    user.image_used_today = user.image_used_today || 0;
+
+    // 1. Free Tier (Lifetime strictly 3 uploads)
+    if (user.tier === 'free') {
+      const remainingLifetime = Math.max(0, 3 - user.image_used_lifetime);
+      if (user.image_used_lifetime + imageCount > 3) {
+        return {
+          allowed: false,
+          reason: 'FREE_IMAGE_LIFETIME_EXHAUSTED',
+          tier: 'free',
+          image_used_lifetime: user.image_used_lifetime,
+          image_used_today: user.image_used_today,
+          remaining: 0,
+          maxAllowed: 3
+        };
+      }
+      return {
+        allowed: true,
+        tier: 'free',
+        image_used_lifetime: user.image_used_lifetime,
+        image_used_today: user.image_used_today,
+        remaining: remainingLifetime,
+        maxAllowed: 3
+      };
+    }
+
+    // 2. Paid Tiers Daily Limits
+    let dailyLimit = 10;
+    if (user.tier === 'start') dailyLimit = 10;
+    else if (user.tier === 'basic') dailyLimit = 20;
+    else if (user.tier === 'pro') dailyLimit = 50;
+
+    const remainingToday = Math.max(0, dailyLimit - user.image_used_today);
+    if (user.image_used_today + imageCount > dailyLimit) {
+      return {
+        allowed: false,
+        reason: 'DAILY_IMAGE_QUOTA_EXHAUSTED',
+        tier: user.tier,
+        image_used_lifetime: user.image_used_lifetime,
+        image_used_today: user.image_used_today,
+        remaining: 0,
+        maxAllowed: dailyLimit
+      };
+    }
+
+    return {
+      allowed: true,
+      tier: user.tier,
+      image_used_lifetime: user.image_used_lifetime,
+      image_used_today: user.image_used_today,
+      remaining: remainingToday,
+      maxAllowed: dailyLimit
+    };
+  }
+
+  /**
+   * Records image upload usage atomically
+   */
+  public recordImageUpload(userId: string, imageCount = 1) {
+    const user = db.users.get(userId);
+    if (!user) return;
+
+    const currentQuotaDay = this.getPhilippineQuotaDay();
+    if (user.last_image_upload_date !== currentQuotaDay) {
+      user.image_used_today = 0;
+      user.last_image_upload_date = currentQuotaDay;
+    }
+
+    user.image_used_lifetime = (user.image_used_lifetime || 0) + imageCount;
+    user.image_used_today = (user.image_used_today || 0) + imageCount;
+    user.updated_at = new Date().toISOString();
+    db.users.set(userId, user);
+  }
+
+  /**
    * Validates and applies a promo / redeem code
    */
   public redeemCode(userId: string, rawCode: string): { success: boolean; creditsAwarded: number; newBalance: number; message: string } {

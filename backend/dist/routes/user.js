@@ -3,9 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.userRouter = void 0;
 const express_1 = require("express");
 const db_1 = require("../db");
+const creditEngine_1 = require("../creditEngine");
 exports.userRouter = (0, express_1.Router)();
 /**
- * Get user profile & credit balance
+ * Get user profile & credit balance along with vision image quota metrics
  */
 exports.userRouter.get('/profile/:userId', (req, res) => {
     const { userId } = req.params;
@@ -13,7 +14,15 @@ exports.userRouter.get('/profile/:userId', (req, res) => {
     if (!user) {
         return res.status(404).json({ error: 'User not found' });
     }
-    res.json({ user });
+    const imageAllowance = creditEngine_1.creditEngine.verifyImageUploadAllowance(userId, 0);
+    res.json({
+        user: {
+            ...user,
+            image_used_lifetime: user.image_used_lifetime || 0,
+            image_used_today: user.image_used_today || 0,
+        },
+        imageAllowance
+    });
 });
 /**
  * Get active subscription plans for comparative paywall

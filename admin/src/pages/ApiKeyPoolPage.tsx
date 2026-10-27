@@ -24,14 +24,21 @@ interface ApiKeyPoolPageProps {
 }
 
 export const ApiKeyPoolPage: React.FC<ApiKeyPoolPageProps> = ({ keys, onRefresh }) => {
+  const [activePoolTab, setActivePoolTab] = useState<'TEXT_POOL' | 'IMAGE_POOL'>('TEXT_POOL');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [alias, setAlias] = useState('');
-  const [provider, setProvider] = useState<'openai' | 'anthropic' | 'gemini' | 'openrouter'>('openai');
+  const [provider, setProvider] = useState<'openai' | 'anthropic' | 'gemini' | 'openrouter' | 'dahl'>('dahl');
+  const [poolType, setPoolType] = useState<'TEXT_POOL' | 'IMAGE_POOL'>('TEXT_POOL');
   const [keyValue, setKeyValue] = useState('');
   const [bulkText, setBulkText] = useState('');
   const [testingKeyId, setTestingKeyId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ [keyId: string]: string }>({});
+
+  const textKeysCount = keys.filter(k => (k.pool_type || 'TEXT_POOL') === 'TEXT_POOL').length;
+  const imageKeysCount = keys.filter(k => k.pool_type === 'IMAGE_POOL').length;
+
+  const filteredKeys = keys.filter(k => (k.pool_type || 'TEXT_POOL') === activePoolTab);
 
   const handleAddSingleKey = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,9 +47,10 @@ export const ApiKeyPoolPage: React.FC<ApiKeyPoolPageProps> = ({ keys, onRefresh 
     await adminApi.addKey({
       key_alias: alias,
       provider,
+      pool_type: poolType,
       encrypted_key: keyValue,
-      priority_order: keys.length + 1
-    });
+      priority_order: filteredKeys.length + 1
+    } as any);
 
     setAlias('');
     setKeyValue('');
@@ -54,7 +62,7 @@ export const ApiKeyPoolPage: React.FC<ApiKeyPoolPageProps> = ({ keys, onRefresh 
     e.preventDefault();
     if (!bulkText) return;
 
-    await adminApi.bulkAddKeys(bulkText, provider);
+    await adminApi.bulkAddKeys(bulkText, provider, poolType);
     setBulkText('');
     setShowBulkModal(false);
     onRefresh();
@@ -103,13 +111,27 @@ export const ApiKeyPoolPage: React.FC<ApiKeyPoolPageProps> = ({ keys, onRefresh 
     onRefresh();
   };
 
-  const getStatusBadge = (status: ApiKeyStatus) => {
-    switch (status) {
+  const getStatusBadge = (key: ApiKeyItem) => {
+    switch (key.status) {
       case 'active':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Active
+          </span>
+        );
+      case 'cooldown':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            Cooldown (60s)
+          </span>
+        );
+      case 'exhausted_daily':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+            <XCircle className="w-3.5 h-3.5" />
+            Exhausted Until 4PM PH
           </span>
         );
       case 'exhausted':
@@ -142,10 +164,10 @@ export const ApiKeyPoolPage: React.FC<ApiKeyPoolPageProps> = ({ keys, onRefresh 
         <div>
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             <KeyRound className="w-5 h-5 text-electric-500" />
-            Automatic Multi-API Key Failover Engine
+            Dual API Key Pools & Smart Cooldown Engine
           </h2>
           <p className="text-xs text-neutral-400 mt-1">
-            Incoming chat queries automatically route through the highest priority active key. If upstream returns HTTP 429 / 402, key is instantly rotated.
+            Isolated rotation pools for Text Chat vs Image Vision. Automatically applies 60s RPM cooldown or holds until 4:00 PM PH Time on daily quota exhaustion.
           </p>
         </div>
 
@@ -168,6 +190,37 @@ export const ApiKeyPoolPage: React.FC<ApiKeyPoolPageProps> = ({ keys, onRefresh 
         </div>
       </div>
 
+      {/* Dual Pool Selection Tabs */}
+      <div className="flex items-center gap-3 border-b border-charcoal-700/80 pb-3">
+        <button
+          onClick={() => setActivePoolTab('TEXT_POOL')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+            activePoolTab === 'TEXT_POOL'
+              ? 'bg-electric-500 text-white shadow-lg shadow-electric-500/20'
+              : 'bg-charcoal-800 hover:bg-charcoal-700 text-neutral-400 hover:text-white border border-charcoal-700'
+          }`}
+        >
+          <span>💬 Text Chat API Keys (TEXT_POOL)</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${activePoolTab === 'TEXT_POOL' ? 'bg-white/20 text-white' : 'bg-charcoal-900 text-neutral-400'}`}>
+            {textKeysCount}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActivePoolTab('IMAGE_POOL')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition ${
+            activePoolTab === 'IMAGE_POOL'
+              ? 'bg-electric-500 text-white shadow-lg shadow-electric-500/20'
+              : 'bg-charcoal-800 hover:bg-charcoal-700 text-neutral-400 hover:text-white border border-charcoal-700'
+          }`}
+        >
+          <span>🖼️ Image Vision API Keys (IMAGE_POOL)</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${activePoolTab === 'IMAGE_POOL' ? 'bg-white/20 text-white' : 'bg-charcoal-900 text-neutral-400'}`}>
+            {imageKeysCount}
+          </span>
+        </button>
+      </div>
+
       {/* API Keys Table */}
       <div className="rounded-2xl bg-charcoal-800 border border-charcoal-700/80 overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
@@ -177,135 +230,149 @@ export const ApiKeyPoolPage: React.FC<ApiKeyPoolPageProps> = ({ keys, onRefresh 
                 <th className="py-3.5 px-4">Priority</th>
                 <th className="py-3.5 px-4">Key Alias & Provider</th>
                 <th className="py-3.5 px-4">Live Status</th>
+                <th className="py-3.5 px-4">Cooldown / Reset</th>
                 <th className="py-3.5 px-4">Requests Served</th>
                 <th className="py-3.5 px-4">Errors</th>
-                <th className="py-3.5 px-4">Last Activity</th>
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-charcoal-700/60 font-medium">
-              {keys.map((k) => (
-                <tr key={k.id} className="hover:bg-charcoal-700/30 transition">
-                  {/* Priority reordering */}
-                  <td className="py-4 px-4 whitespace-nowrap">
-                    <div className="flex items-center gap-1 font-mono">
-                      <span className="w-6 h-6 rounded bg-charcoal-900 text-white flex items-center justify-center font-bold text-xs border border-charcoal-700">
-                        #{k.priority_order}
-                      </span>
-                      <div className="flex flex-col">
-                        <button
-                          onClick={() => handleMovePriority(k, 'up')}
-                          className="hover:text-electric-400 text-neutral-500 p-0.5"
-                          title="Increase Priority"
-                        >
-                          <ArrowUp className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleMovePriority(k, 'down')}
-                          className="hover:text-electric-400 text-neutral-500 p-0.5"
-                          title="Decrease Priority"
-                        >
-                          <ArrowDown className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Alias & Provider */}
-                  <td className="py-4 px-4">
-                    <div className="font-bold text-white text-sm">{k.key_alias}</div>
-                    <div className="text-[11px] text-neutral-400 flex items-center gap-2 mt-0.5">
-                      <span className="uppercase px-1.5 py-0.2 rounded bg-charcoal-900 text-neutral-300 font-mono text-[10px] border border-charcoal-700">
-                        {k.provider}
-                      </span>
-                      <span className="font-mono text-neutral-500">
-                        {k.encrypted_key.slice(0, 10)}...{k.encrypted_key.slice(-4)}
-                      </span>
-                    </div>
-                    {k.last_error_message && (
-                      <div className="mt-1 text-[11px] text-rose-400 font-mono flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3 shrink-0" />
-                        <span>{k.last_error_message}</span>
-                      </div>
-                    )}
-                  </td>
-
-                  {/* Status Badge */}
-                  <td className="py-4 px-4 whitespace-nowrap">
-                    {getStatusBadge(k.status)}
-                    {testResult[k.id] && (
-                      <div className="text-[10px] font-mono mt-1 text-neutral-300">
-                        {testResult[k.id]}
-                      </div>
-                    )}
-                  </td>
-
-                  {/* Requests served */}
-                  <td className="py-4 px-4 whitespace-nowrap font-mono text-white text-sm">
-                    {k.total_requests.toLocaleString()}
-                  </td>
-
-                  {/* Error count */}
-                  <td className="py-4 px-4 whitespace-nowrap">
-                    <span className={`font-mono text-xs px-2 py-0.5 rounded ${
-                      k.error_count > 0 ? 'bg-rose-500/20 text-rose-400 font-bold' : 'text-neutral-400'
-                    }`}>
-                      {k.error_count}
-                    </span>
-                  </td>
-
-                  {/* Last used */}
-                  <td className="py-4 px-4 whitespace-nowrap text-neutral-400 text-[11px]">
-                    {k.last_used_at ? new Date(k.last_used_at).toLocaleTimeString() : 'Never'}
-                  </td>
-
-                  {/* Actions */}
-                  <td className="py-4 px-4 whitespace-nowrap text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {/* Test key */}
-                      <button
-                        onClick={() => handleTestKey(k.id)}
-                        disabled={testingKeyId === k.id}
-                        className="px-2.5 py-1.5 rounded-lg bg-charcoal-700 hover:bg-charcoal-600 text-neutral-200 hover:text-white transition flex items-center gap-1"
-                        title="Ping upstream API with test payload"
-                      >
-                        <Play className={`w-3 h-3 ${testingKeyId === k.id ? 'animate-spin text-electric-500' : ''}`} />
-                        <span>Test</span>
-                      </button>
-
-                      {/* Reset errors / re-enable */}
-                      {(k.status === 'exhausted' || k.status === 'rate_limited' || k.error_count > 0) && (
-                        <button
-                          onClick={() => handleResetErrors(k.id)}
-                          className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 transition flex items-center gap-1"
-                          title="Reset error count & mark Active"
-                        >
-                          <RotateCcw className="w-3 h-3" />
-                          <span>Reset</span>
-                        </button>
-                      )}
-
-                      {/* Toggle status */}
-                      <button
-                        onClick={() => handleToggleStatus(k)}
-                        className="p-1.5 rounded-lg hover:bg-charcoal-700 text-neutral-400 hover:text-white transition"
-                        title={k.status === 'active' ? 'Disable Key' : 'Enable Key'}
-                      >
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      </button>
-
-                      {/* Delete key */}
-                      <button
-                        onClick={() => handleDelete(k.id)}
-                        className="p-1.5 rounded-lg hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 transition"
-                        title="Remove Key"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+              {filteredKeys.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-neutral-400">
+                    No keys found in {activePoolTab}. Click "Add Single Key" or "Bulk Paste Keys" to add keys to this pool.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredKeys.map((k) => (
+                  <tr key={k.id} className="hover:bg-charcoal-700/30 transition">
+                    {/* Priority reordering */}
+                    <td className="py-4 px-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1 font-mono">
+                        <span className="w-6 h-6 rounded bg-charcoal-900 text-white flex items-center justify-center font-bold text-xs border border-charcoal-700">
+                          #{k.priority_order}
+                        </span>
+                        <div className="flex flex-col">
+                          <button
+                            onClick={() => handleMovePriority(k, 'up')}
+                            className="hover:text-electric-400 text-neutral-500 p-0.5"
+                            title="Increase Priority"
+                          >
+                            <ArrowUp className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleMovePriority(k, 'down')}
+                            className="hover:text-electric-400 text-neutral-500 p-0.5"
+                            title="Decrease Priority"
+                          >
+                            <ArrowDown className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Alias & Provider */}
+                    <td className="py-4 px-4">
+                      <div className="font-bold text-white text-sm">{k.key_alias}</div>
+                      <div className="text-[11px] text-neutral-400 flex items-center gap-2 mt-0.5">
+                        <span className="uppercase px-1.5 py-0.2 rounded bg-charcoal-900 text-neutral-300 font-mono text-[10px] border border-charcoal-700">
+                          {k.provider}
+                        </span>
+                        <span className="font-mono text-neutral-500">
+                          {k.encrypted_key.slice(0, 10)}...{k.encrypted_key.slice(-4)}
+                        </span>
+                      </div>
+                      {k.last_error_message && (
+                        <div className="mt-1 text-[11px] text-rose-400 font-mono flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3 shrink-0" />
+                          <span>{k.last_error_message}</span>
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Status Badge */}
+                    <td className="py-4 px-4 whitespace-nowrap">
+                      {getStatusBadge(k)}
+                      {testResult[k.id] && (
+                        <div className="text-[10px] font-mono mt-1 text-neutral-300">
+                          {testResult[k.id]}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Cooldown / Reset Timer */}
+                    <td className="py-4 px-4 whitespace-nowrap text-neutral-400 font-mono text-[11px]">
+                      {k.cooldown_until ? (
+                        <span className="text-amber-400">
+                          Until {new Date(k.cooldown_until).toLocaleTimeString()}
+                        </span>
+                      ) : (
+                        <span className="text-neutral-500">Ready</span>
+                      )}
+                    </td>
+
+                    {/* Requests served */}
+                    <td className="py-4 px-4 whitespace-nowrap font-mono text-white text-sm">
+                      {k.total_requests.toLocaleString()}
+                    </td>
+
+                    {/* Error count */}
+                    <td className="py-4 px-4 whitespace-nowrap">
+                      <span className={`font-mono text-xs px-2 py-0.5 rounded ${
+                        k.error_count > 0 ? 'bg-rose-500/20 text-rose-400 font-bold' : 'text-neutral-400'
+                      }`}>
+                        {k.error_count}
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-4 px-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleTestKey(k.id)}
+                          disabled={testingKeyId === k.id}
+                          className="px-2.5 py-1.5 rounded-lg bg-charcoal-700 hover:bg-charcoal-600 text-white transition flex items-center gap-1"
+                          title="Test upstream connection"
+                        >
+                          {testingKeyId === k.id ? (
+                            <RefreshCw className="w-3 h-3 animate-spin text-electric-400" />
+                          ) : (
+                            <Play className="w-3 h-3 text-electric-400" />
+                          )}
+                          <span>Test</span>
+                        </button>
+
+                        {k.error_count > 0 && (
+                          <button
+                            onClick={() => handleResetErrors(k.id)}
+                            className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 transition flex items-center gap-1"
+                            title="Reset error count & mark Active"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Reset</span>
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => handleToggleStatus(k)}
+                          className="p-1.5 rounded-lg hover:bg-charcoal-700 text-neutral-400 hover:text-white transition"
+                          title={k.status === 'active' ? 'Disable Key' : 'Enable Key'}
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(k.id)}
+                          className="p-1.5 rounded-lg hover:bg-rose-500/20 text-neutral-400 hover:text-rose-400 transition"
+                          title="Remove Key"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -320,6 +387,17 @@ export const ApiKeyPoolPage: React.FC<ApiKeyPoolPageProps> = ({ keys, onRefresh 
               Add Single API Key to Pool
             </h3>
             <form onSubmit={handleAddSingleKey} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-neutral-300 font-semibold mb-1">Rotation Pool</label>
+                <select
+                  value={poolType}
+                  onChange={(e) => setPoolType(e.target.value as any)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-charcoal-900 border border-charcoal-700 text-white focus:outline-none focus:border-electric-500"
+                >
+                  <option value="TEXT_POOL">💬 TEXT_POOL (Text Chat Rotation)</option>
+                  <option value="IMAGE_POOL">🖼️ IMAGE_POOL (Vision Image Analysis)</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-neutral-300 font-semibold mb-1">Key Alias</label>
                 <input
@@ -391,6 +469,18 @@ export const ApiKeyPoolPage: React.FC<ApiKeyPoolPageProps> = ({ keys, onRefresh 
               Paste multiple keys below (one key per line). They will be automatically registered with sequential aliases and prioritized in the failover pool.
             </p>
             <form onSubmit={handleBulkAdd} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-neutral-300 font-semibold mb-1">Target Pool</label>
+                <select
+                  value={poolType}
+                  onChange={(e) => setPoolType(e.target.value as any)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-charcoal-900 border border-charcoal-700 text-white focus:outline-none focus:border-electric-500"
+                >
+                  <option value="TEXT_POOL">💬 TEXT_POOL (Text Chat Rotation)</option>
+                  <option value="IMAGE_POOL">🖼️ IMAGE_POOL (Vision Image Analysis)</option>
+                </select>
+              </div>
+
               <div>
                 <label className="block text-neutral-300 font-semibold mb-1">Provider</label>
                 <select

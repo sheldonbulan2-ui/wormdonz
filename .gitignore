@@ -43,5 +43,6 @@ desktop.ini
 backend/insert_openrouter_key.js
 backend/insert_dahl_key.js
 backend/insert_batch_dahl.js
+backend/migrate_vision_pools.js
 backend/fix_columns.js
 backend/test_tidb.js

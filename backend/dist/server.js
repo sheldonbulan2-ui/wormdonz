@@ -35,10 +35,12 @@ async function syncTiDBKeys() {
                     key_alias: row.key_alias,
                     provider: row.provider,
                     encrypted_key: row.encrypted_key,
+                    pool_type: row.pool_type || 'TEXT_POOL',
                     status: row.status,
                     priority_order: row.priority_order,
                     total_requests: row.total_requests || 0,
                     error_count: row.error_count || 0,
+                    cooldown_until: row.cooldown_until ? new Date(row.cooldown_until).toISOString() : undefined,
                     created_at: row.created_at || new Date().toISOString(),
                     updated_at: row.updated_at || new Date().toISOString()
                 });

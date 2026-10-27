@@ -79,7 +79,7 @@ adminRouter.get('/keys', (req: Request, res: Response) => {
 });
 
 adminRouter.post('/keys', (req: Request, res: Response) => {
-  const { key_alias, provider, encrypted_key, priority_order } = req.body;
+  const { key_alias, provider, encrypted_key, priority_order, pool_type } = req.body;
 
   if (!key_alias || !encrypted_key) {
     return res.status(400).json({ error: 'key_alias and encrypted_key are required' });
@@ -90,6 +90,7 @@ adminRouter.post('/keys', (req: Request, res: Response) => {
     key_alias,
     provider: provider || 'openai',
     encrypted_key,
+    pool_type: pool_type === 'IMAGE_POOL' ? 'IMAGE_POOL' : 'TEXT_POOL',
     status: 'active',
     priority_order: priority_order !== undefined ? Number(priority_order) : db.apiKeys.size + 1,
     total_requests: 0,
@@ -106,7 +107,7 @@ adminRouter.post('/keys', (req: Request, res: Response) => {
  * Bulk add keys
  */
 adminRouter.post('/keys/bulk', (req: Request, res: Response) => {
-  const { rawKeys, provider = 'openai' } = req.body;
+  const { rawKeys, provider = 'openai', pool_type = 'TEXT_POOL' } = req.body;
   if (!rawKeys || typeof rawKeys !== 'string') {
     return res.status(400).json({ error: 'rawKeys string is required (one key per line)' });
   }
@@ -120,6 +121,7 @@ adminRouter.post('/keys/bulk', (req: Request, res: Response) => {
       key_alias: `${provider.toUpperCase()}-Cluster-${db.apiKeys.size + 1}`,
       provider,
       encrypted_key: keyString,
+      pool_type: pool_type === 'IMAGE_POOL' ? 'IMAGE_POOL' : 'TEXT_POOL',
       status: 'active',
       priority_order: db.apiKeys.size + 1,
       total_requests: 0,
@@ -139,7 +141,7 @@ adminRouter.post('/keys/bulk', (req: Request, res: Response) => {
  */
 adminRouter.patch('/keys/:keyId', (req: Request, res: Response) => {
   const { keyId } = req.params;
-  const { status, priority_order, key_alias, reset_errors } = req.body;
+  const { status, priority_order, key_alias, reset_errors, pool_type } = req.body;
 
   const key = db.apiKeys.get(keyId);
   if (!key) return res.status(404).json({ error: 'Key not found' });
@@ -147,6 +149,7 @@ adminRouter.patch('/keys/:keyId', (req: Request, res: Response) => {
   if (status) key.status = status as ApiKeyStatus;
   if (priority_order !== undefined) key.priority_order = Number(priority_order);
   if (key_alias) key.key_alias = key_alias;
+  if (pool_type) key.pool_type = pool_type;
   if (reset_errors) {
     key.error_count = 0;
     key.last_error_message = undefined;

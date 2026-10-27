@@ -57,6 +57,8 @@ exports.authRouter.post('/telegram', (req, res) => {
         credits: 10,
         tier: 'free',
         is_banned: false,
+        image_used_lifetime: 0,
+        image_used_today: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
     };

@@ -1,7 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 
 export type UserTier = 'free' | 'start' | 'basic' | 'pro';
-export type ApiKeyStatus = 'active' | 'exhausted' | 'rate_limited' | 'disabled';
+export type ApiKeyStatus = 'active' | 'cooldown' | 'exhausted_daily' | 'exhausted' | 'rate_limited' | 'disabled';
+export type ApiKeyPoolType = 'TEXT_POOL' | 'IMAGE_POOL';
 export type ApiProvider = 'openai' | 'anthropic' | 'gemini' | 'openrouter' | 'dahl';
 export type MessageRole = 'user' | 'assistant' | 'system';
 
@@ -14,6 +15,9 @@ export interface User {
   avatar_url?: string;
   credits: number;
   tier: UserTier;
+  image_used_lifetime: number;
+  image_used_today: number;
+  last_image_upload_date?: string;
   is_banned: boolean;
   created_at: string;
   updated_at: string;
@@ -23,11 +27,13 @@ export interface ApiKeyRecord {
   id: string;
   key_alias: string;
   provider: ApiProvider;
+  pool_type: ApiKeyPoolType;
   encrypted_key: string;
   status: ApiKeyStatus;
   priority_order: number;
   total_requests: number;
   error_count: number;
+  cooldown_until?: string;
   last_used_at?: string;
   last_error_message?: string;
   created_at: string;
@@ -50,6 +56,7 @@ export interface Message {
   user_id: string;
   role: MessageRole;
   content: string;
+  images?: string[];
   tokens_used: number;
   created_at: string;
 }
@@ -194,6 +201,8 @@ class DatabaseStore {
       credits: 10,
       tier: 'free',
       is_banned: false,
+      image_used_lifetime: 0,
+      image_used_today: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };

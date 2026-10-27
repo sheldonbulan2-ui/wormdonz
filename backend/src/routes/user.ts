@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { db, UserTier } from '../db';
+import { creditEngine } from '../creditEngine';
 
 export const userRouter = Router();
 
 /**
- * Get user profile & credit balance
+ * Get user profile & credit balance along with vision image quota metrics
  */
 userRouter.get('/profile/:userId', (req: Request, res: Response) => {
   const { userId } = req.params;
@@ -14,7 +15,16 @@ userRouter.get('/profile/:userId', (req: Request, res: Response) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  res.json({ user });
+  const imageAllowance = creditEngine.verifyImageUploadAllowance(userId, 0);
+
+  res.json({
+    user: {
+      ...user,
+      image_used_lifetime: user.image_used_lifetime || 0,
+      image_used_today: user.image_used_today || 0,
+    },
+    imageAllowance
+  });
 });
 
 /**

@@ -1,4 +1,5 @@
-export type ApiKeyStatus = 'active' | 'exhausted' | 'rate_limited' | 'disabled';
+export type ApiKeyStatus = 'active' | 'cooldown' | 'exhausted_daily' | 'exhausted' | 'rate_limited' | 'disabled';
+export type ApiKeyPoolType = 'TEXT_POOL' | 'IMAGE_POOL';
 export type ApiProvider = 'openai' | 'anthropic' | 'gemini' | 'openrouter' | 'dahl';
 export type UserTier = 'free' | 'start' | 'basic' | 'pro';
 
@@ -20,11 +21,13 @@ export interface ApiKeyItem {
   id: string;
   key_alias: string;
   provider: ApiProvider;
+  pool_type: ApiKeyPoolType;
   encrypted_key: string;
   status: ApiKeyStatus;
   priority_order: number;
   total_requests: number;
   error_count: number;
+  cooldown_until?: string;
   last_used_at?: string;
   last_error_message?: string;
   created_at: string;

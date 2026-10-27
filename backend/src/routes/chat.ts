@@ -89,13 +89,13 @@ chatRouter.get('/:chatId/messages', (req: Request, res: Response) => {
  * Core Proxy Chat Endpoint with Multi-Key Failover & Credit Validation
  */
 chatRouter.post('/send', async (req: Request, res: Response) => {
-  const { userId, chatId, message, model, stream = false } = req.body;
+  const { userId, chatId, message, model, images = [], stream = false } = req.body;
 
-  if (!userId || !message) {
-    return res.status(400).json({ error: 'userId and message are required' });
+  if (!userId || (!message && (!images || images.length === 0))) {
+    return res.status(400).json({ error: 'userId and message or images are required' });
   }
 
-  // 1. Credit Check
+  // 1. Credit & Image Quota Checks
   try {
     const allowance = creditEngine.verifyCreditAllowance(userId);
     if (!allowance.allowed) {
@@ -104,6 +104,24 @@ chatRouter.post('/send', async (req: Request, res: Response) => {
         message: 'You have 0 credits remaining. Please enter a promo redeem code or upgrade your subscription plan.',
         remainingCredits: 0
       });
+    }
+
+    // Vision Image Upload Quota Check
+    if (Array.isArray(images) && images.length > 0) {
+      const imgAllowance = creditEngine.verifyImageUploadAllowance(userId, images.length);
+      if (!imgAllowance.allowed) {
+        const errorMsg = imgAllowance.reason === 'FREE_IMAGE_LIFETIME_EXHAUSTED'
+          ? 'You have used all 3 Free Lifetime Image Uploads. Upgrade to a paid plan to continue vision analysis.'
+          : `Daily image upload quota reached (${imgAllowance.maxAllowed}/day). Resets at 4:00 PM PH Time.`;
+        return res.status(403).json({
+          error: imgAllowance.reason,
+          message: errorMsg,
+          isImageQuotaBlocked: true,
+          imageAllowance: imgAllowance
+        });
+      }
+      // Record image upload
+      creditEngine.recordImageUpload(userId, images.length);
     }
   } catch (err: any) {
     return res.status(403).json({ error: err.message });
@@ -125,14 +143,15 @@ chatRouter.post('/send', async (req: Request, res: Response) => {
     activeChatId = newChat.id;
   }
 
-  // Record user message
+  // Record user message with attached vision images
   const userMsg: Message = {
     id: uuidv4(),
     chat_id: activeChatId,
     user_id: userId,
     role: 'user',
     content: message,
-    tokens_used: Math.ceil(message.length / 4),
+    images: Array.isArray(images) && images.length > 0 ? images : undefined,
+    tokens_used: Math.ceil(message.length / 4) + (images?.length || 0) * 85,
     created_at: new Date().toISOString()
   };
 
@@ -140,10 +159,11 @@ chatRouter.post('/send', async (req: Request, res: Response) => {
   currentMessages.push(userMsg);
   db.messages.set(activeChatId, currentMessages);
 
-  // 3. Build upstream message payload
+  // 3. Build upstream message payload with isolated pool routing
   const upstreamPayload = {
     model: model || 'wormdonz-base',
-    messages: currentMessages.map(m => ({ role: m.role, content: m.content })),
+    messages: currentMessages.map(m => ({ role: m.role, content: m.content, images: m.images })),
+    images: Array.isArray(images) ? images : [],
     stream
   };
 

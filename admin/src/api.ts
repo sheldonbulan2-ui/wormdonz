@@ -78,7 +78,7 @@ export const adminApi = {
     return { keys: [] };
   },
 
-  async addKey(data: { key_alias: string; provider: string; encrypted_key: string; priority_order?: number }) {
+  async addKey(data: { key_alias: string; provider: string; encrypted_key: string; priority_order?: number; pool_type?: string }) {
     const res = await fetch(`${BASE_URL}/admin/keys`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -87,11 +87,11 @@ export const adminApi = {
     return res.json();
   },
 
-  async bulkAddKeys(rawKeys: string, provider: string) {
+  async bulkAddKeys(rawKeys: string, provider: string, pool_type?: string) {
     const res = await fetch(`${BASE_URL}/admin/keys/bulk`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ rawKeys, provider })
+      body: JSON.stringify({ rawKeys, provider, pool_type: pool_type || 'TEXT_POOL' })
     });
     return res.json();
   },

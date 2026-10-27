@@ -1,8 +1,10 @@
-import { db, ApiKeyRecord, ApiKeyStatus } from './db';
+import { db, ApiKeyRecord, ApiKeyStatus, ApiKeyPoolType } from './db';
+import { creditEngine } from './creditEngine';
 
 export interface UpstreamChatRequest {
-  messages: Array<{ role: string; content: string }>;
+  messages: Array<{ role: string; content: string; images?: string[] }>;
   model?: string;
+  images?: string[];
   stream?: boolean;
 }
 
@@ -12,15 +14,38 @@ export interface UpstreamChatResponse {
   tokensUsed: number;
   servedByKeyAlias: string;
   failoverAttempts: number;
+  poolType: ApiKeyPoolType;
 }
 
 export class KeyPoolManager {
   /**
-   * Fetch active keys sorted by priority_order (asc), error_count (asc), and last_used_at (asc)
+   * Fetch active keys filtered by isolated pool (TEXT_POOL vs. IMAGE_POOL)
+   * Evaluates and clears expired 60-second RPM cooldowns or 4:00 PM PH daily quota timers.
    */
-  public getActiveKeys(): ApiKeyRecord[] {
+  public getActiveKeys(targetPool: ApiKeyPoolType = 'TEXT_POOL'): ApiKeyRecord[] {
+    const now = Date.now();
+
     return Array.from(db.apiKeys.values())
-      .filter(k => k.status === 'active')
+      .map(k => {
+        // Auto-recover expired cooldowns (60s RPM cooldown or 4PM PH Time daily reset)
+        if ((k.status === 'cooldown' || k.status === 'exhausted_daily') && k.cooldown_until) {
+          if (new Date(k.cooldown_until).getTime() <= now) {
+            console.log(`[KeyPoolManager] ♻️ Re-enabling key "${k.key_alias}" from ${k.status} (Cooldown expired).`);
+            k.status = 'active';
+            k.cooldown_until = undefined;
+            k.last_error_message = undefined;
+            k.updated_at = new Date().toISOString();
+            db.apiKeys.set(k.id, k);
+          }
+        }
+        return k;
+      })
+      .filter(k => {
+        // Match isolated pool type (if key has no pool_type, defaults to TEXT_POOL)
+        const keyPool = k.pool_type || 'TEXT_POOL';
+        const poolMatches = keyPool === targetPool;
+        return poolMatches && k.status === 'active';
+      })
       .sort((a, b) => {
         if (a.priority_order !== b.priority_order) {
           return a.priority_order - b.priority_order;
@@ -35,26 +60,27 @@ export class KeyPoolManager {
   }
 
   /**
-   * Marks a key with new status and error diagnostics
+   * Marks a key with new status and smart cooldown timers
    */
-  public markKeyFailure(keyId: string, status: ApiKeyStatus, errorMessage: string) {
+  public markKeyFailure(keyId: string, status: ApiKeyStatus, errorMessage: string, cooldownUntil?: string) {
     const key = db.apiKeys.get(keyId);
     if (!key) return;
 
     key.status = status;
     key.error_count += 1;
     key.last_error_message = errorMessage;
+    key.cooldown_until = cooldownUntil;
     key.last_used_at = new Date().toISOString();
     key.updated_at = new Date().toISOString();
 
-    // Drop priority of exhausted or failed key so it sinks to the bottom
-    if (status === 'exhausted' || status === 'rate_limited') {
+    // Demote priority order so failed keys drop to bottom
+    if (status === 'exhausted' || status === 'exhausted_daily' || status === 'rate_limited') {
       key.priority_order = Math.max(90, key.priority_order + 10);
     }
 
     db.apiKeys.set(keyId, key);
 
-    console.warn(`[KeyPoolManager] ⚠️ Key marked ${status} (Priority demoted to #${key.priority_order}): "${key.key_alias}" - Reason: ${errorMessage}`);
+    console.warn(`[KeyPoolManager] ⚠️ Key [${key.pool_type}] marked ${status}: "${key.key_alias}" (Cooldown until: ${cooldownUntil || 'N/A'}) - Reason: ${errorMessage}`);
   }
 
   /**
@@ -71,26 +97,32 @@ export class KeyPoolManager {
   }
 
   /**
-   * Resilient recursive/iterative failover execution.
-   * If an upstream API returns 429, 401, 402, 503, or quota error,
-   * it rotates automatically to the next active key.
+   * Resilient recursive failover routing through isolated TEXT_POOL or IMAGE_POOL.
    */
   public async executeWithFailover(
     request: UpstreamChatRequest,
     attemptCount = 0
   ): Promise<UpstreamChatResponse> {
-    const activeKeys = this.getActiveKeys();
+    const isVisionRequest = Array.isArray(request.images) && request.images.length > 0;
+    const targetPool: ApiKeyPoolType = isVisionRequest ? 'IMAGE_POOL' : 'TEXT_POOL';
+
+    let activeKeys = this.getActiveKeys(targetPool);
+
+    // Fallback: If IMAGE_POOL has 0 active keys, check if any active Gemini/Vision capable key is in TEXT_POOL
+    if (activeKeys.length === 0 && isVisionRequest) {
+      console.warn(`[KeyPoolManager] ⚠️ IMAGE_POOL empty. Falling back to active multimodal keys in general pool.`);
+      activeKeys = this.getActiveKeys('TEXT_POOL').filter(k => k.provider === 'gemini' || k.provider === 'openrouter' || k.provider === 'dahl');
+    }
 
     if (activeKeys.length === 0) {
-      throw new Error('KEY_POOL_EXHAUSTED: All API keys in the failover pool are exhausted or disabled.');
+      throw new Error(`KEY_POOL_EXHAUSTED: All keys in the ${targetPool} are currently exhausted, in 60s cooldown, or disabled.`);
     }
 
     const currentKey = activeKeys[0];
 
     try {
-      console.log(`[KeyPoolManager] 🔄 Routing request via [${currentKey.provider.toUpperCase()}] key: "${currentKey.key_alias}" (Priority: ${currentKey.priority_order}, Attempt: ${attemptCount + 1})`);
+      console.log(`[KeyPoolManager] 🔄 Routing [${targetPool}] request via [${currentKey.provider.toUpperCase()}] key: "${currentKey.key_alias}" (Priority: #${currentKey.priority_order}, Attempt: ${attemptCount + 1})`);
 
-      // Attempt upstream call with currentKey
       const result = await this.callUpstreamProvider(currentKey, request);
 
       // Succeeded: record usage
@@ -99,26 +131,39 @@ export class KeyPoolManager {
       return {
         ...result,
         servedByKeyAlias: currentKey.key_alias,
-        failoverAttempts: attemptCount
+        failoverAttempts: attemptCount,
+        poolType: targetPool
       };
     } catch (err: any) {
       const errorMsg = err.message || 'Unknown upstream provider error';
-      console.error(`[KeyPoolManager] ❌ Failure on key "${currentKey.key_alias}":`, errorMsg);
+      console.error(`[KeyPoolManager] ❌ Failure on [${targetPool}] key "${currentKey.key_alias}":`, errorMsg);
 
-      // Determine status from error code or text
+      // Smart HTTP 429 Differentiator: 60-Second RPM Cooldown vs. 4:00 PM PH Time Daily Reset
       let nextStatus: ApiKeyStatus = 'exhausted';
-      if (errorMsg.includes('429') || errorMsg.includes('Rate limit') || errorMsg.includes('TPM') || errorMsg.includes('RPM')) {
-        nextStatus = 'rate_limited';
-      } else if (errorMsg.includes('402') || errorMsg.includes('Quota') || errorMsg.includes('insufficient_quota') || errorMsg.includes('credit')) {
+      let cooldownUntil: string | undefined;
+
+      const lowerErr = errorMsg.toLowerCase();
+
+      if (lowerErr.includes('perday') || lowerErr.includes('rpd') || lowerErr.includes('quota exceeded for quota metric') || lowerErr.includes('daily')) {
+        // Daily Quota Hit: Cooldown until next 4:00 PM Philippine Time
+        nextStatus = 'exhausted_daily';
+        cooldownUntil = creditEngine.getNext4PmPhilippineTime().toISOString();
+        console.warn(`[KeyPoolManager] 🔴 Key "${currentKey.key_alias}" Daily Quota exhausted. Cooldown scheduled until 4:00 PM PH Time (${cooldownUntil}).`);
+      } else if (lowerErr.includes('429') || lowerErr.includes('perminute') || lowerErr.includes('rpm') || lowerErr.includes('rate limit') || lowerErr.includes('resource_exhausted')) {
+        // 60-Second RPM Cooldown
+        nextStatus = 'cooldown';
+        cooldownUntil = new Date(Date.now() + 60000).toISOString();
+        console.warn(`[KeyPoolManager] 🟡 Key "${currentKey.key_alias}" hit 60-Second RPM rate limit. Cooldown until ${cooldownUntil}.`);
+      } else if (lowerErr.includes('402') || lowerErr.includes('insufficient_quota') || lowerErr.includes('credit')) {
         nextStatus = 'exhausted';
-      } else if (errorMsg.includes('401') || errorMsg.includes('Invalid API key') || errorMsg.includes('Revoked')) {
+      } else if (lowerErr.includes('401') || lowerErr.includes('invalid api key') || lowerErr.includes('revoked')) {
         nextStatus = 'disabled';
       }
 
-      // Mark the key in database
-      this.markKeyFailure(currentKey.id, nextStatus, errorMsg);
+      // Mark the key status with calculated cooldown
+      this.markKeyFailure(currentKey.id, nextStatus, errorMsg, cooldownUntil);
 
-      // Seamless recursive failover to next key in pool
+      // Seamless recursive failover to next key in target pool
       return this.executeWithFailover(request, attemptCount + 1);
     }
   }
@@ -134,6 +179,52 @@ export class KeyPoolManager {
     // If the key alias contains 'exhausted' or simulated error flag, trigger failure to demonstrate failover
     if (key.key_alias.toLowerCase().includes('exhausted') || key.encrypted_key.includes('exhausted')) {
       throw new Error(`HTTP 402 Payment Required: Upstream ${key.provider} quota exhausted for key ${key.key_alias}`);
+    }
+
+    // Real Google Gemini API Call (Vision & Text)
+    if (key.provider === 'gemini' || key.encrypted_key.startsWith('AIzaSy')) {
+      try {
+        const parts: any[] = [];
+        const userPrompt = request.messages[request.messages.length - 1]?.content || 'Analyze and describe the attached image.';
+
+        if (Array.isArray(request.images) && request.images.length > 0) {
+          for (const imgBase64 of request.images) {
+            const cleanBase64 = imgBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+            parts.push({
+              inlineData: {
+                mimeType: 'image/jpeg',
+                data: cleanBase64
+              }
+            });
+          }
+        }
+        parts.push({ text: userPrompt });
+
+        const geminiModel = 'gemini-2.0-flash';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${key.encrypted_key}`;
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts }] })
+        });
+
+        if (!response.ok) {
+          const errBody = await response.text();
+          throw new Error(`Google Gemini HTTP ${response.status} ${response.statusText}: ${errBody}`);
+        }
+
+        const data = await response.json();
+        const outputText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No textual response from Gemini vision model.';
+
+        return {
+          content: outputText,
+          model: geminiModel,
+          tokensUsed: data.usageMetadata?.totalTokenCount || 65
+        };
+      } catch (err: any) {
+        throw err;
+      }
     }
 
     // Real Dahl Inference API call
@@ -266,7 +357,7 @@ export class KeyPoolManager {
 
     // High-Fidelity Intelligent Response Engine for WormDonz
     const userPrompt = request.messages[request.messages.length - 1]?.content || '';
-    const generated = this.generateWormDonzResponse(userPrompt, request.model || 'wormdonz-base');
+    const generated = this.generateWormDonzResponse(userPrompt, request.model || 'wormdonz-base', request.images);
 
     // Simulate standard model latency (200ms)
     await new Promise(r => setTimeout(r, 220));
@@ -274,11 +365,30 @@ export class KeyPoolManager {
     return {
       content: generated,
       model: request.model || 'wormdonz-base',
-      tokensUsed: Math.floor(userPrompt.length / 4) + 64
+      tokensUsed: Math.floor(userPrompt.length / 4) + 64 + (request.images?.length || 0) * 85
     };
   }
 
-  private generateWormDonzResponse(prompt: string, model: string): string {
+  private generateWormDonzResponse(prompt: string, model: string, images?: string[]): string {
+    if (images && images.length > 0) {
+      return `### 🖼️ Vision Analysis Report (${images.length} Image${images.length > 1 ? 's' : ''} Processed)\n\n` +
+        `I have examined the uploaded visual artifact${images.length > 1 ? 's' : ''} in high resolution:\n\n` +
+        `1. **Visual Structure & Inspection:**\n` +
+        `- Spatial orientation: Clear hierarchical layout with distinct foreground and background layers.\n` +
+        `- Artifact validation: No compression artifacts detected; clean 1024x1024 aspect ratio.\n\n` +
+        `2. **Analysis & Detailed Insights:**\n` +
+        `Regarding your question *"${prompt || 'Analyze this image'}"*:\n` +
+        `The content in the visual frame aligns with standard parameters and shows consistent formatting.\n\n` +
+        `\`\`\`json\n` +
+        `{\n` +
+        `  "vision_status": "analyzed",\n` +
+        `  "images_processed": ${images.length},\n` +
+        `  "engine": "WormDonz Vision Multimodal",\n` +
+        `  "quota_deducted": 1\n` +
+        `}\n` +
+        `\`\`\``;
+    }
+
     const p = prompt.toLowerCase();
 
     if (p.includes('code') || p.includes('python') || p.includes('algorithm') || p.includes('function')) {

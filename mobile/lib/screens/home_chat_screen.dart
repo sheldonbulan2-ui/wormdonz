@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../theme/theme_provider.dart';
@@ -24,6 +26,11 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _inputFocusNode = FocusNode();
+
+  final ImagePicker _imagePicker = ImagePicker();
+  final List<XFile> _selectedImageFiles = [];
+  final List<String> _base64Images = [];
+  bool _isCompressingImages = false;
 
   late UserModel _currentUser;
   List<ChatModel> _chats = [];
@@ -435,21 +442,411 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
     );
   }
 
+  void _showImagePaywallSheet({required String message, bool isLifetime = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1C1C1E) : WormDonzColors.pureWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 34),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock_outline_rounded, color: Colors.amberAccent, size: 36),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                isLifetime ? 'Free Image Uploads Exhausted' : 'Daily Image Upload Quota Reached',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13.5, color: Colors.grey, height: 1.4),
+              ),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.workspace_premium_rounded, size: 18),
+                  label: const Text('Upgrade Subscription Plan'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: WormDonzColors.electricBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SubscriptionScreen(
+                          currentUser: _currentUser,
+                          onUpgraded: (user) => setState(() => _currentUser = user),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _openAttachmentPickerModal() {
+    // 1. Strict Free Tier Lifetime Quota Check
+    if (_currentUser.tier == 'free' && _currentUser.imageUsedLifetime >= 3) {
+      _showImagePaywallSheet(
+        message: 'You have used all 3 Free Lifetime Image Uploads. Upgrade to Starter (10/day), Basic (20/day), or Pro (50/day) to continue image vision analysis.',
+        isLifetime: true,
+      );
+      return;
+    }
+
+    // 2. Paid Daily Quota Check
+    if (_currentUser.remainingImageQuota <= 0) {
+      _showImagePaywallSheet(
+        message: 'Your image upload quota for today has been reached. Daily quotas reset at 4:00 PM Philippine Time, or upgrade to a higher tier.',
+        isLifetime: false,
+      );
+      return;
+    }
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isFree = _currentUser.tier == 'free';
+    final quotaText = isFree
+        ? '🖼️ ${_currentUser.remainingImageQuota}/3 Free Lifetime Image Uploads Left'
+        : '🖼️ ${_currentUser.remainingImageQuota}/${_currentUser.maxImageAllowed} Daily Image Uploads Left';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1C1C1E) : WormDonzColors.pureWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Title & Description
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Attach for Vision Analysis',
+                      style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700),
+                    ),
+                    // Quota Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: WormDonzColors.electricBlue.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: WormDonzColors.electricBlue.withOpacity(0.3), width: 0.8),
+                      ),
+                      child: Text(
+                        isFree ? '${_currentUser.remainingImageQuota}/3 Left' : '${_currentUser.remainingImageQuota} Left',
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: WormDonzColors.electricBlue,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Upload photos/screenshots for AI vision analysis. AI replies strictly in streaming text/code (No image generation).',
+                  style: TextStyle(fontSize: 12, color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                ),
+                const SizedBox(height: 14),
+
+                // Live Quota Banner
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFF2F2F7),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, size: 16, color: WormDonzColors.electricBlue),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          quotaText,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Option 1: Take Photo (Camera)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: WormDonzColors.electricBlue.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.camera_alt_rounded, color: WormDonzColors.electricBlue, size: 22),
+                  ),
+                  title: const Text('Take Photo', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)),
+                  subtitle: const Text('Capture using device camera', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+
+                // Option 2: Upload from Gallery (Photo Library)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  leading: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: Colors.purpleAccent.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.photo_library_rounded, color: Colors.purpleAccent, size: 22),
+                  ),
+                  title: const Text('Upload from Gallery', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)),
+                  subtitle: const Text('Choose screenshot or image from photos', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    if (_selectedImageFiles.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Maximum 3 images allowed per message.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedImageFiles.length >= _currentUser.remainingImageQuota) {
+      _showImagePaywallSheet(
+        message: 'You have reached your remaining image quota limit.',
+        isLifetime: _currentUser.tier == 'free',
+      );
+      return;
+    }
+
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+
+      if (picked != null) {
+        setState(() => _isCompressingImages = true);
+
+        // Compress image to max 1024x1024 at 75% JPEG quality before Base64 encoding
+        final base64Url = await ApiService.compressImageToBase64(picked);
+
+        setState(() {
+          _selectedImageFiles.add(picked);
+          _base64Images.add(base64Url);
+          _isCompressingImages = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isCompressingImages = false);
+      debugPrint('[HomeChat] Error picking image: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load image: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _removeSelectedImage(int index) {
+    if (index >= 0 && index < _selectedImageFiles.length) {
+      setState(() {
+        _selectedImageFiles.removeAt(index);
+        if (index < _base64Images.length) {
+          _base64Images.removeAt(index);
+        }
+      });
+    }
+  }
+
+  void _showImageZoomDialog(String imageStr) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.92),
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(12),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              InteractiveViewer(
+                panEnabled: true,
+                minScale: 0.8,
+                maxScale: 4.0,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: _renderImageThumbnail(imageStr, isZoom: true),
+                ),
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(
+                      color: Color(0x99000000),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, color: Colors.white, size: 20),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _renderImageThumbnail(String imageStr, {bool isZoom = false}) {
+    if (imageStr.startsWith('data:image')) {
+      final commaIdx = imageStr.indexOf(',');
+      final cleanBase64 = commaIdx != -1 ? imageStr.substring(commaIdx + 1) : imageStr;
+      try {
+        final bytes = base64Decode(cleanBase64);
+        return Image.memory(
+          bytes,
+          fit: isZoom ? BoxFit.contain : BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
+        );
+      } catch (_) {}
+    } else if (imageStr.startsWith('http://') || imageStr.startsWith('https://')) {
+      return Image.network(
+        imageStr,
+        fit: isZoom ? BoxFit.contain : BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
+      );
+    }
+    return const Icon(Icons.image, color: Colors.grey);
+  }
+
   Future<void> _handleSendMessage([String? directText]) async {
     if (_isStreaming) return;
 
     final prompt = (directText ?? _inputController.text).trim();
-    if (prompt.isEmpty) return;
+    final hasImages = _base64Images.isNotEmpty;
+    if (prompt.isEmpty && !hasImages) return;
 
     if (_currentUser.credits <= 0 && _currentUser.tier != 'pro') {
       _showZeroCreditSheet();
       return;
     }
 
+    if (hasImages) {
+      if (_currentUser.tier == 'free' && _currentUser.imageUsedLifetime + _base64Images.length > 3) {
+        _showImagePaywallSheet(
+          message: 'You have exceeded your 3 Free Lifetime Image Uploads. Upgrade to a paid plan for daily vision analysis.',
+          isLifetime: true,
+        );
+        return;
+      }
+      if (_currentUser.tier != 'free' && _currentUser.remainingImageQuota < _base64Images.length) {
+        _showImagePaywallSheet(
+          message: 'Insufficient daily image upload allowance. Quotas reset at 4:00 PM PH Time.',
+          isLifetime: false,
+        );
+        return;
+      }
+    }
+
     _lastUserPrompt = prompt;
 
-    // 1. Instantly hide empty state & unfocus/clear composer
+    // Snapshot attached images
+    final attachedImages = List<String>.from(_base64Images);
+
+    // 1. Instantly hide empty state & clear composer & attachments
     _inputController.clear();
+    _selectedImageFiles.clear();
+    _base64Images.clear();
     _inputFocusNode.unfocus();
 
     // 2. Append user message bubble (aligned top-right, dark charcoal #1C1C1E, clean white text)
@@ -458,6 +855,7 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
       chatId: _activeChatId ?? 'new',
       role: 'user',
       content: prompt,
+      images: attachedImages.isNotEmpty ? attachedImages : null,
       createdAt: DateTime.now(),
     );
 
@@ -467,18 +865,26 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
       _isThinking = true;
       _streamingText = '';
       _userScrolledUp = false;
+
+      // Update remaining image quota instantly
+      if (attachedImages.isNotEmpty) {
+        _currentUser.imageUsedLifetime += attachedImages.length;
+        _currentUser.imageUsedToday += attachedImages.length;
+        _currentUser.remainingImageQuota = max(0, _currentUser.remainingImageQuota - attachedImages.length);
+      }
     });
 
     _startThinkingAnimation();
     _scrollToBottom(force: true);
 
-    // 3. Initiate SSE / Chunked token streaming
+    // 3. Initiate SSE / Chunked token streaming with attached images
     try {
       final stream = ApiService.streamPrompt(
-        prompt: prompt,
+        prompt: prompt.isEmpty ? 'Analyze the attached image(s).' : prompt,
         chatId: _activeChatId,
         userId: _currentUser.id,
         model: _currentModel.toLowerCase().replaceAll(' ', '-'),
+        images: attachedImages,
       );
 
       _streamSub = stream.listen(
@@ -500,6 +906,12 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
           } else if (type == 'done') {
             _handleStreamDone(event);
           } else if (type == 'error') {
+            if (event['isImageQuotaBlocked'] == true) {
+              _showImagePaywallSheet(
+                message: event['message'] ?? 'Image upload quota limit reached.',
+                isLifetime: _currentUser.tier == 'free',
+              );
+            }
             _handleStreamError(event);
           }
         },
@@ -933,12 +1345,13 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
         final isUser = msg.role == 'user';
 
         if (isUser) {
+          final hasImages = msg.images != null && msg.images!.isNotEmpty;
           // User Message Bubble (Top-Right aligned, rounded dark charcoal #1C1C1E, clean white text)
           return Align(
             alignment: Alignment.centerRight,
             child: Container(
               margin: const EdgeInsets.only(bottom: 18, left: 54),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
               decoration: BoxDecoration(
                 color: userBubbleColor,
                 borderRadius: const BorderRadius.only(
@@ -952,14 +1365,45 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
                   width: 0.8,
                 ),
               ),
-              child: Text(
-                msg.content,
-                style: TextStyle(
-                  fontSize: 14.8,
-                  color: textColor,
-                  height: 1.45,
-                  fontWeight: FontWeight.w400,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Attached Vision Images preview in chat bubble
+                  if (hasImages)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: msg.content.isNotEmpty ? 8 : 0),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.end,
+                        children: msg.images!.map((imgStr) {
+                          return GestureDetector(
+                            onTap: () => _showImageZoomDialog(imgStr),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                width: 80,
+                                height: 80,
+                                color: Colors.black26,
+                                child: _renderImageThumbnail(imgStr),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  if (msg.content.isNotEmpty)
+                    Text(
+                      msg.content,
+                      style: TextStyle(
+                        fontSize: 14.8,
+                        color: textColor,
+                        height: 1.45,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                ],
               ),
             ),
           );
@@ -1016,123 +1460,220 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
 
   Widget _buildBottomInputBar(Color textColor, Color mutedColor, Color surfaceColor, bool isDark) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+      padding: const EdgeInsets.fromLTRB(14, 6, 14, 14),
       decoration: BoxDecoration(
         color: isDark ? WormDonzColors.oledBlack : WormDonzColors.pureWhite,
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Left: Circular + Attachment Button (#1C1C1E)
-          GestureDetector(
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('File & Vision attachments available on Basic & Pro tiers.'),
-                  duration: Duration(seconds: 2),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-            child: Container(
-              width: 44,
-              height: 44,
-              margin: const EdgeInsets.only(bottom: 2),
-              decoration: BoxDecoration(
-                color: surfaceColor,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight,
-                  width: 0.6,
-                ),
-              ),
-              child: Icon(Icons.add, color: textColor, size: 22),
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Center-Right: Floating Pill-shaped Text Field ("Ask WormDonz...")
-          Expanded(
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 46, maxHeight: 120),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: surfaceColor,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight,
-                  width: 0.6,
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+          // 2. Attachment Preview Strip (Horizontal row directly above input pill)
+          if (_selectedImageFiles.isNotEmpty || _isCompressingImages)
+            Container(
+              height: 74,
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListView(
+                scrollDirection: Axis.horizontal,
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _inputController,
-                      focusNode: _inputFocusNode,
-                      readOnly: _isStreaming,
-                      maxLines: null,
-                      style: TextStyle(color: textColor, fontSize: 14.5),
-                      decoration: InputDecoration(
-                        hintText: 'Ask WormDonz...',
-                        hintStyle: TextStyle(color: mutedColor, fontSize: 14.5),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onSubmitted: (_) => _handleSendMessage(),
-                    ),
-                  ),
-
-                  // Microphone Icon (Voice-to-text toggle)
-                  IconButton(
-                    icon: Icon(Icons.mic_none_rounded, color: mutedColor, size: 21),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Microphone voice recognition active.'),
-                          duration: Duration(seconds: 1),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 6),
-
-                  // Action Button: Rotating Red Circular Arc Spinner OR Blue Send Button
-                  _isStreaming
-                      ? Container(
-                          width: 32,
-                          height: 32,
-                          padding: const EdgeInsets.all(4),
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF3B30)), // Continuous Red #FF3B30
-                          ),
-                        )
-                      : GestureDetector(
-                          onTap: () => _handleSendMessage(),
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: const BoxDecoration(
-                              color: WormDonzColors.electricBlue,
-                              shape: BoxShape.circle,
+                  for (int i = 0; i < _selectedImageFiles.length; i++)
+                    Container(
+                      width: 62,
+                      height: 62,
+                      margin: const EdgeInsets.only(right: 10, top: 4),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // 60x60 Rounded Thumbnail (borderRadius: 12)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: surfaceColor,
+                                border: Border.all(
+                                  color: isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight,
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: i < _base64Images.length
+                                  ? _renderImageThumbnail(_base64Images[i])
+                                  : FutureBuilder<Uint8List>(
+                                      future: _selectedImageFiles[i].readAsBytes(),
+                                      builder: (ctx, snap) {
+                                        if (snap.hasData) {
+                                          return Image.memory(snap.data!, fit: BoxFit.cover);
+                                        }
+                                        return const Center(
+                                          child: SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          ),
+                                        );
+                                      },
+                                    ),
                             ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.arrow_upward_rounded,
-                                color: Colors.white,
-                                size: 19,
+                          ),
+                          // Top-Right Circular ✕ Button to Remove Image
+                          Positioned(
+                            top: -4,
+                            right: -2,
+                            child: GestureDetector(
+                              onTap: () => _removeSelectedImage(i),
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF2C2C2E) : Colors.black87,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 1.2),
+                                ),
+                                child: const Center(
+                                  child: Icon(Icons.close, color: Colors.white, size: 12),
+                                ),
                               ),
                             ),
                           ),
+                        ],
+                      ),
+                    ),
+
+                  // Compressing Indicator Chip
+                  if (_isCompressingImages)
+                    Container(
+                      width: 60,
+                      height: 60,
+                      margin: const EdgeInsets.only(right: 10, top: 4),
+                      decoration: BoxDecoration(
+                        color: surfaceColor,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight,
+                          width: 0.8,
                         ),
+                      ),
+                      child: const Center(
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: WormDonzColors.electricBlue),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
+
+          // Composer Row: [+] | [Ask WormDonz... (Mic) (Send)]
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Left: Circular + Attachment Button (#1C1C1E)
+              GestureDetector(
+                onTap: _openAttachmentPickerModal,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  margin: const EdgeInsets.only(bottom: 2),
+                  decoration: BoxDecoration(
+                    color: surfaceColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight,
+                      width: 0.6,
+                    ),
+                  ),
+                  child: Icon(Icons.add, color: textColor, size: 22),
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Center-Right: Floating Pill-shaped Text Field ("Ask WormDonz...")
+              Expanded(
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 46, maxHeight: 120),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: surfaceColor,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight,
+                      width: 0.6,
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _inputController,
+                          focusNode: _inputFocusNode,
+                          readOnly: _isStreaming,
+                          maxLines: null,
+                          style: TextStyle(color: textColor, fontSize: 14.5),
+                          decoration: InputDecoration(
+                            hintText: _selectedImageFiles.isNotEmpty ? 'Add context for image...' : 'Ask WormDonz...',
+                            hintStyle: TextStyle(color: mutedColor, fontSize: 14.5),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onSubmitted: (_) => _handleSendMessage(),
+                        ),
+                      ),
+
+                      // Microphone Icon (Voice-to-text toggle)
+                      IconButton(
+                        icon: Icon(Icons.mic_none_rounded, color: mutedColor, size: 21),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Microphone voice recognition active.'),
+                              duration: Duration(seconds: 1),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 6),
+
+                      // Action Button: Rotating Red Circular Arc Spinner OR Blue Send Button
+                      _isStreaming
+                          ? Container(
+                              width: 32,
+                              height: 32,
+                              padding: const EdgeInsets.all(4),
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF3B30)), // Continuous Red #FF3B30
+                              ),
+                            )
+                          : GestureDetector(
+                              onTap: () => _handleSendMessage(),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: const BoxDecoration(
+                                  color: WormDonzColors.electricBlue,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.arrow_upward_rounded,
+                                    color: Colors.white,
+                                    size: 19,
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
