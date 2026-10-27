@@ -30,8 +30,12 @@ class EmailService {
                 port: 465,
                 secure: true,
                 pool: true, // Reuse socket connections for instant high-concurrency sending
-                maxConnections: 5,
-                maxMessages: 100,
+                maxConnections: 10,
+                maxMessages: Infinity,
+                rateLimit: 14,
+                connectionTimeout: 4000,
+                greetingTimeout: 4000,
+                socketTimeout: 6000,
                 auth: {
                     user: account.user,
                     pass: account.pass
@@ -42,6 +46,22 @@ class EmailService {
             });
         }
         return account.transporter;
+    }
+    /**
+     * Pre-warm all transporter connections at startup for 0ms handshake latency
+     */
+    static warmUpPools() {
+        for (const account of this.SMTP_ACCOUNTS) {
+            const transporter = this.getTransporter(account);
+            transporter.verify((err) => {
+                if (err) {
+                    console.warn(`[EmailService] ⚠️ SMTP warm-up warning on ${account.label}:`, err.message);
+                }
+                else {
+                    console.log(`[EmailService] ⚡ SMTP pre-warmed & ready: ${account.label}`);
+                }
+            });
+        }
     }
     /**
      * Generates a cryptographically random 6-digit numeric OTP code
@@ -178,3 +198,5 @@ class EmailService {
     }
 }
 exports.EmailService = EmailService;
+// Automatically pre-warm connection pools on boot
+EmailService.warmUpPools();

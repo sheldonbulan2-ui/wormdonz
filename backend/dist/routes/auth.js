@@ -112,14 +112,15 @@ exports.authRouter.post('/register', async (req, res) => {
         otp,
         expires_at: expiresAt
     });
-    // Dispatch via Brevo API
-    const dispatchResult = await emailService_1.EmailService.sendVerificationOtp(cleanEmail, cleanUsername, otp);
+    // Fast-track background dispatch: send email asynchronously without blocking the client response
+    emailService_1.EmailService.sendVerificationOtp(cleanEmail, cleanUsername, otp, 'registration')
+        .catch(err => console.error(`[Auth] Background registration email error for ${cleanEmail}:`, err));
     return res.status(200).json({
         success: true,
-        message: `Verification code sent to ${cleanEmail}. Check your inbox or spam folder.`,
+        message: `Verification code sent to ${cleanEmail}. Check your inbox.`,
         email: cleanEmail,
         username: cleanUsername,
-        previewOtp: dispatchResult.deliveredVia === 'simulated_fallback' ? otp : undefined
+        previewOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
     });
 });
 /**
@@ -212,11 +213,13 @@ exports.authRouter.post('/resend-otp', async (req, res) => {
     pending.otp = newOtp;
     pending.expires_at = Date.now() + 10 * 60 * 1000;
     db_1.db.pendingRegistrations.set(cleanEmail, pending);
-    const dispatchResult = await emailService_1.EmailService.sendVerificationOtp(cleanEmail, pending.username, newOtp);
+    // Fast-track background dispatch
+    emailService_1.EmailService.sendVerificationOtp(cleanEmail, pending.username, newOtp, 'registration')
+        .catch(err => console.error(`[Auth] Background resend email error for ${cleanEmail}:`, err));
     return res.json({
         success: true,
         message: `A new verification code has been dispatched to ${cleanEmail}.`,
-        previewOtp: dispatchResult.deliveredVia === 'simulated_fallback' ? newOtp : undefined
+        previewOtp: process.env.NODE_ENV !== 'production' ? newOtp : undefined
     });
 });
 /**
@@ -286,12 +289,13 @@ exports.authRouter.post('/forgot-password', async (req, res) => {
         otp,
         expires_at: expiresAt
     });
-    const dispatchResult = await emailService_1.EmailService.sendVerificationOtp(cleanEmail, user.display_name || user.username || 'User', otp, 'forgot_password');
+    // Fast-track background dispatch
+    emailService_1.EmailService.sendVerificationOtp(cleanEmail, user.display_name || user.username || 'User', otp, 'forgot_password').catch(err => console.error(`[Auth] Background forgot password email error for ${cleanEmail}:`, err));
     return res.json({
         success: true,
         message: `Password reset code sent to ${cleanEmail}. Check your inbox.`,
         email: cleanEmail,
-        previewOtp: dispatchResult.deliveredVia === 'fallback_preview' ? otp : undefined
+        previewOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
     });
 });
 /**
@@ -477,12 +481,15 @@ exports.authRouter.post('/admin/request-reset', async (req, res) => {
         otp,
         expires_at: expiresAt
     });
-    const emailResult = await emailService_1.EmailService.sendVerificationOtp(targetEmail, 'Sheldon Bulan (Owner)', otp, 'forgot_password');
+    // Fire-and-forget background email dispatch:
+    emailService_1.EmailService.sendVerificationOtp(targetEmail, 'Sheldon Bulan (Owner)', otp, 'forgot_password').catch(err => {
+        console.error(`[Auth] Background admin password reset email failed for ${targetEmail}:`, err);
+    });
     return res.json({
         success: true,
         message: `A 6-digit administrator password reset code has been sent to ${targetEmail}.`,
         targetEmail,
-        previewOtp: emailResult.deliveredVia === 'fallback_preview' ? otp : undefined
+        previewOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
     });
 });
 /**
