@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import path from 'path';
 import fs from 'fs';
 import mysql from 'mysql2/promise';
@@ -54,6 +55,14 @@ async function syncTiDBKeys() {
 syncTiDBKeys();
 
 app.use(cors());
+app.use(compression({
+  filter: (req, res) => {
+    if (req.headers.accept && req.headers.accept.includes('text/event-stream')) {
+      return false;
+    }
+    return compression.filter(req, res);
+  }
+}));
 app.use(express.json());
 
 // Request logger
@@ -160,7 +169,11 @@ app.use('/api/admin', adminRouter);
 const adminDistDir = path.join(__dirname, '../../admin/dist');
 if (fs.existsSync(adminDistDir)) {
   console.log(`📦 Serving Admin Web & Landing Page from ${adminDistDir}`);
-  app.use(express.static(adminDistDir));
+  app.use(express.static(adminDistDir, {
+    maxAge: '7d',
+    etag: true,
+    lastModified: true
+  }));
   app.get('*', (req, res, next) => {
     if (req.url.startsWith('/api') || req.url.startsWith('/health') || req.url.startsWith('/public')) {
       return next();

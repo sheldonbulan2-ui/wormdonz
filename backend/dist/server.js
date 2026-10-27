@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
+const compression_1 = __importDefault(require("compression"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const promise_1 = __importDefault(require("mysql2/promise"));
@@ -55,6 +56,14 @@ async function syncTiDBKeys() {
 }
 syncTiDBKeys();
 app.use((0, cors_1.default)());
+app.use((0, compression_1.default)({
+    filter: (req, res) => {
+        if (req.headers.accept && req.headers.accept.includes('text/event-stream')) {
+            return false;
+        }
+        return compression_1.default.filter(req, res);
+    }
+}));
 app.use(express_1.default.json());
 // Request logger
 app.use((req, res, next) => {
@@ -148,7 +157,11 @@ app.use('/api/admin', admin_1.adminRouter);
 const adminDistDir = path_1.default.join(__dirname, '../../admin/dist');
 if (fs_1.default.existsSync(adminDistDir)) {
     console.log(`📦 Serving Admin Web & Landing Page from ${adminDistDir}`);
-    app.use(express_1.default.static(adminDistDir));
+    app.use(express_1.default.static(adminDistDir, {
+        maxAge: '7d',
+        etag: true,
+        lastModified: true
+    }));
     app.get('*', (req, res, next) => {
         if (req.url.startsWith('/api') || req.url.startsWith('/health') || req.url.startsWith('/public')) {
             return next();

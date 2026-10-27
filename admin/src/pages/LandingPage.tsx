@@ -152,7 +152,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
                     WormDonz Android Application
                   </div>
                   <div className="text-xs text-neutral-400 mt-0.5">
-                    Package: <span className="font-mono text-neutral-300">wormdonz-ai-v1.0.apk</span> • Size: <span className="text-neutral-300 font-mono">42.8 MB</span>
+                    Package: <span className="font-mono text-neutral-300">wormdonz-ai-v1.0.apk</span> • Size: <span className="text-neutral-300 font-mono">52.2 MB</span>
                   </div>
                 </div>
 
