@@ -7,6 +7,19 @@ const db_1 = require("../db");
 const keyPoolManager_1 = require("../keyPoolManager");
 const creditEngine_1 = require("../creditEngine");
 exports.chatRouter = (0, express_1.Router)();
+function getSystemPromptForAgent(model, hasImages = false) {
+    const m = (model || '').toLowerCase();
+    if (hasImages) {
+        return 'You are WormDonz Vision Specialist. Thoroughly examine the attached visual input. Directly analyze the image context, layout, diagrams, or text and answer the user prompt in detailed streaming Markdown. Do not generate images.';
+    }
+    if (m.includes('coder') || m.includes('pro')) {
+        return 'You are EvilGPT Coder Pro, an uncensored software engineering powerhouse and systems architect. Always produce robust, complete code blocks (bash, python, dart, php, rust, etc.), architecture analysis, and exact solutions tailored to the user\'s specific problem without generic preambles.';
+    }
+    if (m.includes('big') || m.includes('reasoning')) {
+        return 'You are EvilGPT BIG, the high-capacity reasoning intelligence. Deconstruct problems with exhaustive logical rigor, multi-faceted analysis, formal breakdowns, and structured clarity tailored directly to the user inquiry.';
+    }
+    return 'You are EvilGPT Latest, the ultra-fast flagship reasoning assistant. Provide direct, highly intelligent, contextual answers tailored strictly to what the user asks.';
+}
 /**
  * List all chats for a user (pinned first, then by updated_at desc)
  */
@@ -86,17 +99,20 @@ exports.chatRouter.post('/send', async (req, res) => {
         return res.status(400).json({ error: 'userId and message or images are required' });
     }
     // 1. Credit & Image Quota Checks
+    const hasImages = Array.isArray(images) && images.length > 0;
+    const creditCost = (0, creditEngine_1.getCreditCostForModel)(model, hasImages);
     try {
-        const allowance = creditEngine_1.creditEngine.verifyCreditAllowance(userId);
+        const allowance = creditEngine_1.creditEngine.verifyCreditAllowance(userId, creditCost);
         if (!allowance.allowed) {
             return res.status(403).json({
                 error: 'INSUFFICIENT_CREDITS',
-                message: 'You have 0 credits remaining. Please enter a promo redeem code or upgrade your subscription plan.',
-                remainingCredits: 0
+                message: `You have ${allowance.remainingCredits} credits remaining, but this model (${model || 'WormDonz'}) requires ${creditCost} credits. Please redeem a code or upgrade.`,
+                requiredCredits: creditCost,
+                remainingCredits: allowance.remainingCredits
             });
         }
         // Vision Image Upload Quota Check
-        if (Array.isArray(images) && images.length > 0) {
+        if (hasImages) {
             const imgAllowance = creditEngine_1.creditEngine.verifyImageUploadAllowance(userId, images.length);
             if (!imgAllowance.allowed) {
                 const errorMsg = imgAllowance.reason === 'FREE_IMAGE_LIFETIME_EXHAUSTED'
@@ -145,10 +161,15 @@ exports.chatRouter.post('/send', async (req, res) => {
     const currentMessages = db_1.db.messages.get(activeChatId) || [];
     currentMessages.push(userMsg);
     db_1.db.messages.set(activeChatId, currentMessages);
-    // 3. Build upstream message payload with isolated pool routing
+    // 3. Build upstream message payload with agent-specific persona & isolated pool routing
+    const systemPrompt = getSystemPromptForAgent(model, hasImages);
+    const conversationMessages = currentMessages.map(m => ({ role: m.role, content: m.content, images: m.images }));
     const upstreamPayload = {
         model: model || 'wormdonz-base',
-        messages: currentMessages.map(m => ({ role: m.role, content: m.content, images: m.images })),
+        messages: [
+            { role: 'system', content: systemPrompt },
+            ...conversationMessages
+        ],
         images: Array.isArray(images) ? images : [],
         stream
     };
@@ -166,8 +187,8 @@ exports.chatRouter.post('/send', async (req, res) => {
                 res.write(`data: ${JSON.stringify({ token: token + ' ' })}\n\n`);
                 await new Promise(r => setTimeout(r, 25));
             }
-            // Deduct credit atomically
-            const remainingCredits = creditEngine_1.creditEngine.deductCredit(userId, 1, 'chat_deduction', activeChatId);
+            // Deduct model-dependent credit cost atomically
+            const remainingCredits = creditEngine_1.creditEngine.deductCredit(userId, creditCost, 'chat_deduction', activeChatId);
             // Record assistant message
             const assistantMsg = {
                 id: (0, uuid_1.v4)(),
@@ -184,6 +205,7 @@ exports.chatRouter.post('/send', async (req, res) => {
             res.write(`data: ${JSON.stringify({
                 done: true,
                 chatId: activeChatId,
+                creditCost,
                 remainingCredits,
                 servedByKeyAlias: failoverResult.servedByKeyAlias,
                 failoverAttempts: failoverResult.failoverAttempts
@@ -200,8 +222,8 @@ exports.chatRouter.post('/send', async (req, res) => {
         // Non-streaming response
         try {
             const failoverResult = await keyPoolManager_1.keyPoolManager.executeWithFailover(upstreamPayload);
-            // Deduct credit atomically
-            const remainingCredits = creditEngine_1.creditEngine.deductCredit(userId, 1, 'chat_deduction', activeChatId);
+            // Deduct model-dependent credit cost atomically
+            const remainingCredits = creditEngine_1.creditEngine.deductCredit(userId, creditCost, 'chat_deduction', activeChatId);
             // Save assistant message
             const assistantMsg = {
                 id: (0, uuid_1.v4)(),
@@ -224,6 +246,7 @@ exports.chatRouter.post('/send', async (req, res) => {
             return res.json({
                 chatId: activeChatId,
                 message: assistantMsg,
+                creditCost,
                 remainingCredits,
                 servedByKeyAlias: failoverResult.servedByKeyAlias,
                 failoverAttempts: failoverResult.failoverAttempts

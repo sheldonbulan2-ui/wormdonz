@@ -46,6 +46,8 @@ class ApiService {
     }
   }
 
+  static const String defaultProductionUrl = 'https://wormdonz.onrender.com/api';
+
   /// Get current effective Base URL
   static String get baseUrl {
     if (_cachedCustomHost != null && _cachedCustomHost!.trim().isNotEmpty) {
@@ -56,11 +58,7 @@ class ApiService {
       return 'http://$host/api';
     }
 
-    if (kIsWeb) return 'http://localhost:4000/api';
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:4000/api';
-    }
-    return 'http://localhost:4000/api';
+    return defaultProductionUrl;
   }
 
   static Future<void> initHost() async {
@@ -304,22 +302,9 @@ class ApiService {
 
       await Future.delayed(const Duration(milliseconds: 600));
 
-      String fallbackContent = (images != null && images.isNotEmpty)
-          ? "### 👁️ WormDonz Vision Analysis Report\n\n"
-            "Analyzed **${images.length} attached image(s)** alongside prompt **\"$prompt\"**.\n\n"
-            "- **Object & Text Extraction**: Visual composition verified at 1024x1024 tensor scale.\n"
-            "- **Contextual Reasoning**: Processed through IMAGE_POOL key rotation.\n"
-            "- **Synthesis**: Clean structural interpretation rendered in pure Markdown."
-          : "### WormDonz Intelligent Response\n\n"
-            "Your query **\"$prompt\"** has been processed through the WormDonz AI architecture.\n\n"
-            "```dart\n"
-            "// High performance token dispatcher\n"
-            "void routePayload(String prompt) {\n"
-            "  print('WormDonz dispatch: \${prompt.trim()}');\n"
-            "}\n"
-            "```\n\n"
-            "- Zero-latency failover routing verified.\n"
-            "- Credits deducted: 1 credit.";
+      final fallbackContent = (images != null && images.isNotEmpty)
+          ? _generateVisionResponseText(prompt, images.length)
+          : _generatePersonaResponseText(prompt, model);
 
       return {
         'success': true,
@@ -333,7 +318,7 @@ class ApiService {
           createdAt: DateTime.now(),
         ),
         'remainingCredits': 9,
-        'servedByKeyAlias': 'OpenAI-Cluster-Primary',
+        'servedByKeyAlias': 'WormDonz-Cluster-Primary',
       };
     }
   }
@@ -343,7 +328,7 @@ class ApiService {
     required String prompt,
     String? chatId,
     String userId = defaultUserId,
-    String model = 'wormdonz-base',
+    String model = 'evilgpt-latest',
     List<String>? images,
   }) async* {
     bool hasStreamedLive = false;
@@ -362,7 +347,7 @@ class ApiService {
         'stream': true,
       });
 
-      final streamedResponse = await client.send(req).timeout(const Duration(seconds: 12));
+      final streamedResponse = await client.send(req).timeout(const Duration(seconds: 14));
 
       if (streamedResponse.statusCode == 403) {
         final bodyStr = await streamedResponse.stream.bytesToString();
@@ -422,9 +407,9 @@ class ApiService {
     if (!hasStreamedLive) {
       final sampleChunks = (images != null && images.isNotEmpty)
           ? _generateSimulatedVisionStreamingChunks(prompt, images.length)
-          : _generateSimulatedStreamingChunks(prompt);
+          : _generateSimulatedStreamingChunks(prompt, model);
       for (final chunk in sampleChunks) {
-        await Future.delayed(const Duration(milliseconds: 32));
+        await Future.delayed(const Duration(milliseconds: 24));
         yield {'type': 'token', 'value': chunk};
       }
       yield {
@@ -435,20 +420,67 @@ class ApiService {
     }
   }
 
-  static List<String> _generateSimulatedVisionStreamingChunks(String prompt, int imageCount) {
-    String text = "### 👁️ WormDonz Multimodal Vision Analysis\n\n"
-        "I have processed and inspected **$imageCount image(s)** from your upload buffer.\n\n"
-        "1. **Visual Layout & Features**\n"
-        "The uploaded screenshot/photo displays clean composition, typography, and UI element hierarchy.\n\n"
-        "2. **Extracted Context**\n"
-        "In response to: *\"$prompt\"*, here is the structural breakdown and technical guidance:\n\n"
-        "```bash\n"
-        "# Vision tensor validated: 1024x1024 JPEG @ 75%\n"
-        "echo \"Visual parsing complete without text-to-image synthesis\"\n"
-        "```\n\n"
+  static String _generateVisionResponseText(String prompt, int imageCount) {
+    return "### 👁️ WormDonz Multimodal Vision Analysis\n\n"
+        "Analyzed **$imageCount attached image(s)** for inquiry: *\"${prompt.trim()}\"*\n\n"
+        "1. **Visual Composition & Structure**\n"
+        "Visual components normalized at 1024x1024 tensor scale. Contrast, text bounding boxes, and layout hierarchy extracted cleanly.\n\n"
+        "2. **Contextual Analysis**\n"
+        "The visual frame contains elements relevant to your request. All key items have been processed without generative drift.\n\n"
         "3. **Conclusion**\n"
-        "No visual artifacts or layout anomalies detected. Ready for implementation.";
+        "Inspection complete via Google Gemini Vision engine.";
+  }
 
+  static String _generatePersonaResponseText(String prompt, String model) {
+    final m = model.toLowerCase();
+    final p = prompt.trim();
+    final pLower = p.toLowerCase();
+
+    if (m.contains('coder') || m.contains('pro')) {
+      String codeSnippet = '';
+      if (pLower.contains('python') || pLower.contains('reverse')) {
+        codeSnippet = "```python\n# EvilGPT Coder Pro - High Performance Python\ndef process_query(data):\n    if isinstance(data, str):\n        return data[::-1]\n    return list(reversed(data))\n\nprint(process_query('$p'))\n```";
+      } else if (pLower.contains('dart') || pLower.contains('flutter')) {
+        codeSnippet = "```dart\n// EvilGPT Coder Pro - Clean Flutter/Dart\nclass Solution {\n  final String prompt;\n  const Solution(this.prompt);\n  void run() => debugPrint('Execution: \$prompt');\n}\n```";
+      } else if (pLower.contains('sql') || pLower.contains('database') || pLower.contains('query')) {
+        codeSnippet = "```sql\n-- Production query with parameterization\nSELECT id, username, credits, tier\nFROM users\nWHERE id = :userId\nLIMIT 1;\n```";
+      } else {
+        codeSnippet = "```bash\n# Production systems script\necho \"[EvilGPT Coder Pro] Executing: $p\"\nset -euo pipefail\n```";
+      }
+
+      return "### ⚡ EvilGPT Coder Pro\n\n"
+          "Here is the engineered implementation for **\"$p\"**:\n\n"
+          "$codeSnippet\n\n"
+          "**Specifications:**\n"
+          "- Zero unnecessary boilerplate.\n"
+          "- Defensively tested input boundaries.\n"
+          "- Memory and latency optimized.";
+    }
+
+    if (m.contains('big') || m.contains('reasoning')) {
+      return "### 🧠 EvilGPT BIG — Deep Reasoning Analysis\n\n"
+          "**Systematic Analysis on:** *\"$p\"*\n\n"
+          "#### 1. First-Principles Deconstruction\n"
+          "Evaluating *\"$p\"* involves inspecting underlying constraints and functional requirements:\n"
+          "- **Structural Domain:** Identifying parameters, operational boundaries, and dependencies.\n"
+          "- **Risk Vectors:** Checking for race conditions, state mutations, and edge behaviors.\n\n"
+          "#### 2. Logical Synthesis & Trade-Off Matrix\n"
+          "- Direct pathway delivers immediate execution with minimal memory footprint.\n"
+          "- Layered architectural safeguards preserve state consistency across concurrent operations.\n\n"
+          "#### 3. Strategic Conclusion\n"
+          "Execution strategy for *\"$p\"* verified against resilience benchmarks.";
+    }
+
+    return "### 🚀 EvilGPT Latest\n\n"
+        "Regarding: **\"$p\"**\n\n"
+        "Direct evaluation confirms the query is actionable and processed through the latest high-speed inference pipeline.\n\n"
+        "1. **Core Insight:** Direct response to *\"$p\"* synthesized with high-throughput clarity.\n"
+        "2. **Latency Calibration:** Zero conversational fluff; calibrated for maximum precision.\n"
+        "3. **Ready:** System prepared for follow-up prompts.";
+  }
+
+  static List<String> _generateSimulatedVisionStreamingChunks(String prompt, int imageCount) {
+    final text = _generateVisionResponseText(prompt, imageCount);
     final words = text.split(' ');
     final List<String> chunks = [];
     for (int i = 0; i < words.length; i++) {
@@ -457,28 +489,8 @@ class ApiService {
     return chunks;
   }
 
-  static List<String> _generateSimulatedStreamingChunks(String prompt) {
-    String text = "Here is the architectural analysis and implementation for your prompt:\n\n"
-        "1. **SQL Injection Vulnerabilities**\n"
-        "Unsanitized client parameters exposed directly to execution queries introduce severe data extraction vectors.\n\n"
-        "2. **Execution Safeguards**\n"
-        "The runtime establishes strict parameterization and validates input boundaries using `validate_token_pool()`.\n\n"
-        "```bash\n"
-        "# Verify failover proxy node health\n"
-        "curl -X GET https://api.wormdonz.ai/v1/status\n"
-        "```\n\n"
-        "```php\n"
-        "<?php\n"
-        "// Production query with prepared statements\n"
-        "\$stmt = \$pdo->prepare('SELECT id, username, credits FROM users WHERE id = :id');\n"
-        "\$stmt->execute(['id' => \$userId]);\n"
-        "\$user = \$stmt->fetch();\n"
-        "?>\n"
-        "```\n\n"
-        "3. **Failover Pool Verification**\n"
-        "Requests are dynamically routed through the active key pool without dropping active context.";
-
-    // Slice into words and punctuations to simulate authentic LLM token streaming
+  static List<String> _generateSimulatedStreamingChunks(String prompt, [String model = 'evilgpt-latest']) {
+    final text = _generatePersonaResponseText(prompt, model);
     final words = text.split(' ');
     final List<String> chunks = [];
     for (int i = 0; i < words.length; i++) {

@@ -1,14 +1,32 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.creditEngine = exports.CreditEngine = void 0;
+exports.getCreditCostForModel = getCreditCostForModel;
 const uuid_1 = require("uuid");
 const db_1 = require("./db");
+function getCreditCostForModel(modelName, hasImages = false) {
+    const clean = (modelName || 'evilgpt-latest').toLowerCase().replace(/\s+/g, '-');
+    let cost = 1;
+    if (clean.includes('coder') || clean.includes('pro')) {
+        cost = 2; // EvilGPT Coder Pro
+    }
+    else if (clean.includes('big') || clean.includes('reasoning')) {
+        cost = 3; // EvilGPT BIG (Deep Reasoning)
+    }
+    else {
+        cost = 1; // EvilGPT Latest (Fast Flagship)
+    }
+    if (hasImages) {
+        cost += 1; // +1 credit for Vision processing
+    }
+    return cost;
+}
 class CreditEngine {
     /**
-     * Verifies if user has sufficient credits to initiate a prompt.
+     * Verifies if user has sufficient credits to initiate a prompt based on model cost.
      * Pro tier users have unlimited chat privileges.
      */
-    verifyCreditAllowance(userId) {
+    verifyCreditAllowance(userId, requiredCredits = 1) {
         const user = db_1.db.users.get(userId);
         if (!user) {
             throw new Error('USER_NOT_FOUND: User does not exist.');
@@ -18,12 +36,12 @@ class CreditEngine {
         }
         // Pro tier users have unconstrained access
         if (user.tier === 'pro') {
-            return { allowed: true, remainingCredits: user.credits, user };
+            return { allowed: true, requiredCredits, remainingCredits: user.credits, user };
         }
-        if (user.credits <= 0) {
-            return { allowed: false, remainingCredits: 0, user };
+        if (user.credits < requiredCredits) {
+            return { allowed: false, requiredCredits, remainingCredits: user.credits, user };
         }
-        return { allowed: true, remainingCredits: user.credits, user };
+        return { allowed: true, requiredCredits, remainingCredits: user.credits, user };
     }
     /**
      * Atomically deducts credits from a user's balance

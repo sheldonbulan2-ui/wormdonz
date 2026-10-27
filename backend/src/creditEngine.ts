@@ -1,12 +1,34 @@
 import { v4 as uuidv4 } from 'uuid';
 import { db, User } from './db';
 
+export function getCreditCostForModel(modelName?: string, hasImages = false): number {
+  const clean = (modelName || 'evilgpt-latest').toLowerCase().replace(/\s+/g, '-');
+  let cost = 1;
+  if (clean.includes('coder') || clean.includes('pro')) {
+    cost = 2; // EvilGPT Coder Pro
+  } else if (clean.includes('big') || clean.includes('reasoning')) {
+    cost = 3; // EvilGPT BIG (Deep Reasoning)
+  } else {
+    cost = 1; // EvilGPT Latest (Fast Flagship)
+  }
+
+  if (hasImages) {
+    cost += 1; // +1 credit for Vision processing
+  }
+  return cost;
+}
+
 export class CreditEngine {
   /**
-   * Verifies if user has sufficient credits to initiate a prompt.
+   * Verifies if user has sufficient credits to initiate a prompt based on model cost.
    * Pro tier users have unlimited chat privileges.
    */
-  public verifyCreditAllowance(userId: string): { allowed: boolean; remainingCredits: number; user: User } {
+  public verifyCreditAllowance(userId: string, requiredCredits = 1): {
+    allowed: boolean;
+    requiredCredits: number;
+    remainingCredits: number;
+    user: User;
+  } {
     const user = db.users.get(userId);
     if (!user) {
       throw new Error('USER_NOT_FOUND: User does not exist.');
@@ -18,14 +40,14 @@ export class CreditEngine {
 
     // Pro tier users have unconstrained access
     if (user.tier === 'pro') {
-      return { allowed: true, remainingCredits: user.credits, user };
+      return { allowed: true, requiredCredits, remainingCredits: user.credits, user };
     }
 
-    if (user.credits <= 0) {
-      return { allowed: false, remainingCredits: 0, user };
+    if (user.credits < requiredCredits) {
+      return { allowed: false, requiredCredits, remainingCredits: user.credits, user };
     }
 
-    return { allowed: true, remainingCredits: user.credits, user };
+    return { allowed: true, requiredCredits, remainingCredits: user.credits, user };
   }
 
   /**

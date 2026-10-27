@@ -377,6 +377,38 @@ class _CustomDrawerState extends State<CustomDrawer> {
 
               const Spacer(),
 
+              // Live Server Cluster Status
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF141416),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF26262B), width: 0.8),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF00F5A0),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Render Cloud: wormdonz.onrender.com',
+                        style: TextStyle(color: Color(0xFF8E8E93), fontSize: 10.5, fontFamily: 'monospace'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               // User Info Footer
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 12),

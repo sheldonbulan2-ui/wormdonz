@@ -37,24 +37,41 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
   String? _activeChatId;
   List<ChatMessage> _messages = [];
   String _currentModel = 'EvilGPT Coder Pro';
+  int _lastSentCreditCost = 2;
 
-  final List<Map<String, String>> _availableAiModels = const [
+  final List<Map<String, dynamic>> _availableAiModels = const [
+    {
+      'id': 'evilgpt-latest',
+      'title': 'EvilGPT Latest',
+      'subtitle': 'Fastest flagship — uncensored reasoning',
+      'credits': 1,
+    },
     {
       'id': 'evilgpt-coder-pro',
       'title': 'EvilGPT Coder Pro',
-      'subtitle': 'Long code generation, truly uncensored',
+      'subtitle': 'Long code generation, software architecture',
+      'credits': 2,
     },
     {
       'id': 'evilgpt-big',
       'title': 'EvilGPT BIG',
       'subtitle': 'Flagship reasoning powerhouse, deep analysis',
-    },
-    {
-      'id': 'evilgpt-latest',
-      'title': 'EvilGPT Latest',
-      'subtitle': 'Fastest flagship — long context, uncensored reasoning',
+      'credits': 3,
     },
   ];
+
+  int _getModelCreditCost(String modelTitle, bool hasImages) {
+    final t = modelTitle.toLowerCase();
+    int baseCost = 1;
+    if (t.contains('coder') || t.contains('pro')) {
+      baseCost = 2;
+    } else if (t.contains('big') || t.contains('reasoning')) {
+      baseCost = 3;
+    } else {
+      baseCost = 1;
+    }
+    return baseCost + (hasImages ? 1 : 0);
+  }
 
   // Streaming & Thinking States
   bool _isStreaming = false;
@@ -294,12 +311,45 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
                                       letterSpacing: -0.2,
                                     ),
                                   ),
-                                  if (isSelected)
-                                    const Icon(
-                                      Icons.check,
-                                      color: Color(0xFFFF3B30), // Red checkmark as in screenshot
-                                      size: 20,
-                                    ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF00F5A0).withOpacity(0.12),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: const Color(0xFF00F5A0).withOpacity(0.35),
+                                            width: 0.8,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFF00F5A0)),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              '${item['credits']} ${item['credits'] == 1 ? 'credit' : 'credits'}',
+                                              style: const TextStyle(
+                                                color: Color(0xFF00F5A0),
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (isSelected) ...[
+                                        const SizedBox(width: 8),
+                                        const Icon(
+                                          Icons.check,
+                                          color: Color(0xFFFF3B30), // Red checkmark as in screenshot
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 6),
@@ -329,10 +379,10 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
                         border: Border.all(color: const Color(0xFF26262B), width: 0.8),
                       ),
                       child: Text(
-                        '${activeModelMeta['title']} — ${activeModelMeta['subtitle']}',
+                        '${activeModelMeta['title']} — ${activeModelMeta['subtitle']} • ${activeModelMeta['credits']} credit(s)/msg (+1 for image upload)',
                         style: const TextStyle(
                           color: Color(0xFFD1D1D6),
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w400,
                           height: 1.3,
                         ),
@@ -348,7 +398,7 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
     );
   }
 
-  void _showZeroCreditSheet() {
+  void _showZeroCreditSheet([int requiredCredits = 1]) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet(
       context: context,
@@ -371,17 +421,17 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
                 ),
               ),
               const SizedBox(height: 18),
-              const Icon(Icons.battery_alert_rounded, color: Colors.orangeAccent, size: 48),
+              const Icon(Icons.bolt_rounded, color: Colors.orangeAccent, size: 48),
               const SizedBox(height: 12),
               const Text(
-                'Credit Balance Depleted',
+                'Insufficient Credits',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
-              const Text(
-                'You have 0 credits remaining. Redeem a promo code for instant bonus credits, or upgrade your subscription plan.',
+              Text(
+                'This model query requires $requiredCredits credits for $_currentModel, but you currently have ${_currentUser.credits} credits remaining. Redeem a promo code or upgrade your plan.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+                style: const TextStyle(fontSize: 13, color: Colors.grey, height: 1.4),
               ),
               const SizedBox(height: 22),
               Row(
@@ -402,6 +452,7 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
                           context,
                           onRedeemed: (newBalance) {
                             setState(() => _currentUser.credits = newBalance);
+                            ApiService.saveUserSession(_currentUser);
                           },
                         );
                       },
@@ -816,8 +867,11 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
     final hasImages = _base64Images.isNotEmpty;
     if (prompt.isEmpty && !hasImages) return;
 
-    if (_currentUser.credits <= 0 && _currentUser.tier != 'pro') {
-      _showZeroCreditSheet();
+    final requiredCredits = _getModelCreditCost(_currentModel, hasImages);
+    _lastSentCreditCost = requiredCredits;
+
+    if (_currentUser.tier != 'pro' && _currentUser.credits < requiredCredits) {
+      _showZeroCreditSheet(requiredCredits);
       return;
     }
 
@@ -954,11 +1008,18 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
       _isThinking = false;
       _streamingText = '';
 
-      // Live Credit Deduction (e.g. 10 -> 9)
-      if (_currentUser.tier != 'pro') {
-        _currentUser.credits = max(0, _currentUser.credits - 1);
+      // Dynamic model-dependent credit deduction (1 for Latest, 2 for Coder Pro, 3 for BIG, +1 for vision)
+      if (metadata['remainingCredits'] != null && metadata['remainingCredits'] is int) {
+        _currentUser.credits = metadata['remainingCredits'] as int;
+      } else if (_currentUser.tier != 'pro') {
+        final int costToDeduct = (metadata['creditCost'] is int)
+            ? metadata['creditCost'] as int
+            : _lastSentCreditCost;
+        _currentUser.credits = max(0, _currentUser.credits - costToDeduct);
       }
     });
+
+    ApiService.saveUserSession(_currentUser);
 
     _scrollToBottom(force: true);
 

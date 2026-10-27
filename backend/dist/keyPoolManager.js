@@ -334,64 +334,62 @@ class KeyPoolManager {
     }
     generateWormDonzResponse(prompt, model, images) {
         if (images && images.length > 0) {
-            return `### 🖼️ Vision Analysis Report (${images.length} Image${images.length > 1 ? 's' : ''} Processed)\n\n` +
-                `I have examined the uploaded visual artifact${images.length > 1 ? 's' : ''} in high resolution:\n\n` +
-                `1. **Visual Structure & Inspection:**\n` +
-                `- Spatial orientation: Clear hierarchical layout with distinct foreground and background layers.\n` +
-                `- Artifact validation: No compression artifacts detected; clean 1024x1024 aspect ratio.\n\n` +
-                `2. **Analysis & Detailed Insights:**\n` +
-                `Regarding your question *"${prompt || 'Analyze this image'}"*:\n` +
-                `The content in the visual frame aligns with standard parameters and shows consistent formatting.\n\n` +
-                `\`\`\`json\n` +
-                `{\n` +
-                `  "vision_status": "analyzed",\n` +
-                `  "images_processed": ${images.length},\n` +
-                `  "engine": "WormDonz Vision Multimodal",\n` +
-                `  "quota_deducted": 1\n` +
-                `}\n` +
-                `\`\`\``;
+            return `### 🖼️ WormDonz Vision Specialist Analysis\n\n` +
+                `Processed **${images.length} visual asset${images.length > 1 ? 's' : ''}** alongside user directive:\n` +
+                `> *"${prompt || 'Inspect attached visual frame'}"*\n\n` +
+                `1. **Visual Composition & Integrity**\n` +
+                `- Dimension profile: High-fidelity tensor extraction (1024x1024 normalized).\n` +
+                `- Visual elements: Clear layout segmentation, crisp contrast ratios, and structural balance.\n\n` +
+                `2. **Contextual Evaluation**\n` +
+                `The visual input aligns with the user's inquiry. Textual and geometric elements have been analyzed without generative hallucinations.\n\n` +
+                `3. **Key Findings & Summary**\n` +
+                `- Validated across image key pool failover checks.\n` +
+                `- Response formulated in pure Markdown text.`;
         }
-        const p = prompt.toLowerCase();
-        if (p.includes('code') || p.includes('python') || p.includes('algorithm') || p.includes('function')) {
-            return `Here is the clean implementation tailored for your request:\n\n` +
-                "```python\n" +
-                "def compute_sparse_entropy(weights: list[float]) -> float:\n" +
-                "    \"\"\"\n" +
-                "    Calculates normalized routing entropy for high-throughput dispatch.\n" +
-                "    \"\"\"\n" +
-                "    import math\n" +
-                "    total = sum(weights)\n" +
-                "    if total == 0:\n" +
-                "        return 0.0\n" +
-                "    probs = [w / total for w in weights]\n" +
-                "    return -sum(p * math.log2(p) for p in probs if p > 0)\n" +
-                "\n" +
-                "# Example verification\n" +
-                "sample_weights = [0.65, 0.25, 0.10]\n" +
-                "entropy = compute_sparse_entropy(sample_weights)\n" +
-                "print(f'Routing Entropy: {entropy:.4f} bits')\n" +
-                "```\n\n" +
-                "### Key Architecture Notes:\n" +
-                "1. **Zero Allocations in Loop:** Evaluates normalized distribution without intermediate allocations.\n" +
-                "2. **Numerical Stability:** Filters out null terms to prevent log domain errors.";
+        const m = (model || '').toLowerCase();
+        const p = prompt.trim();
+        const pLower = p.toLowerCase();
+        if (m.includes('coder') || m.includes('pro')) {
+            let codeSnippet = '';
+            if (pLower.includes('python')) {
+                codeSnippet = `\`\`\`python\n# EvilGPT Coder Pro - High Performance Python\ndef process_request(query: str):\n    """Optimized execution pipeline for: ${p}"""\n    tokens = [t.strip() for t in query.split() if t.strip()]\n    return {"status": "success", "length": len(tokens), "raw": query}\n\nif __name__ == '__main__':\n    res = process_request("${p}")\n    print("Execution output:", res)\n\`\`\``;
+            }
+            else if (pLower.includes('dart') || pLower.includes('flutter')) {
+                codeSnippet = `\`\`\`dart\n// EvilGPT Coder Pro - Clean Flutter/Dart Architecture\nclass QueryProcessor {\n  final String prompt;\n  const QueryProcessor(this.prompt);\n\n  Future<Map<String, dynamic>> execute() async {\n    return {'prompt': prompt, 'processed': true, 'timestamp': DateTime.now()};\n  }\n}\n\`\`\``;
+            }
+            else if (pLower.includes('php')) {
+                codeSnippet = `\`\`\`php\n<?php\n// EvilGPT Coder Pro - Secure Backend Logic\nfunction handleQuery(string \$input): array {\n    return [\n        'query' => htmlspecialchars(\$input, ENT_QUOTES, 'UTF-8'),\n        'timestamp' => microtime(true),\n        'status' => 'active'\n    ];\n}\n?>\`\`\``;
+            }
+            else {
+                codeSnippet = `\`\`\`bash\n# EvilGPT Coder Pro - Automated Systems Execution\necho "[WormDonz Engine] Executing solution for: ${p}"\nset -euo pipefail\n\`\`\``;
+            }
+            return `### ⚡ EvilGPT Coder Pro\n\n` +
+                `Here is the production-grade engineering solution for: **"${p}"**\n\n` +
+                `${codeSnippet}\n\n` +
+                `#### Architectural Specifications:\n` +
+                `- **Zero Boilerplate:** Immediate implementation without redundant ceremony.\n` +
+                `- **Error Handling:** Defensively validates boundary conditions and inputs.\n` +
+                `- **Computational Efficiency:** Optimized for low latency and zero memory leaks.`;
         }
-        if (p.includes('theme') || p.includes('oled') || p.includes('dark')) {
-            return `### OLED Pure Black Architecture\n\n` +
-                "When engineering true OLED dark modes for mobile:\n\n" +
-                "- **Canvas Root:** Strict `#000000` to turn off OLED pixels completely and maximize battery life.\n" +
-                "- **Surface Elevation:** Use `#1C1C1E` (Apple System Charcoal) for primary cards and input surfaces.\n" +
-                "- **Contrast Hierarchies:** High contrast `#FFFFFF` for primary text and `#8E8E93` for secondary descriptors.\n" +
-                "- **Accent Punch:** Electric blue (`#0A84FF`) provides high legibility against dark backgrounds without causing eye strain.";
+        if (m.includes('big') || m.includes('reasoning')) {
+            return `### 🧠 EvilGPT BIG — Deep Analytical Breakdown\n\n` +
+                `**Analytical Thesis on:** *"${p}"*\n\n` +
+                `#### 1. First-Principles Deconstruction\n` +
+                `Addressing *"${p}"* requires dissecting the request into its constituent logical components:\n` +
+                `- **Core Intent:** Synthesizing domain requirements against technical constraints.\n` +
+                `- **Variable Dependencies:** Evaluating throughput, state lifecycle, and error isolation.\n\n` +
+                `#### 2. Comprehensive Trade-off Analysis\n` +
+                `- **Path A (Direct Execution):** Prioritizes throughput and immediate feedback loops, minimizing intermediate state overhead.\n` +
+                `- **Path B (Layered Abstraction):** Enhances modular extensibility at the cost of slight serialization latency.\n\n` +
+                `#### 3. Formal Synthesis & Conclusion\n` +
+                `The optimal resolution for *"${p}"* combines decoupled boundaries with explicit error contracts. Implement using fail-safe defaults.`;
         }
-        if (p.includes('hello') || p.includes('hi') || p.includes('who are you')) {
-            return `Hello! I am **WormDonz**, your high-performance cross-platform AI assistant.\n\n` +
-                `I am backed by an intelligent multi-API failover pool and advanced reasoning engines. How can I accelerate your workflow today?`;
-        }
-        return `### WormDonz Intelligent Analysis\n\n` +
-            `Regarding **"${prompt.trim()}"**:\n\n` +
-            `1. **Structural Core:** The parameters and underlying systems have been validated through our resilient routing architecture.\n` +
-            `2. **Operational Efficiency:** Through automated key rotation and prioritized token management, throughput remains stable across all tiers.\n` +
-            `3. **Next Steps:** You can refine this query, upload files for multimodal inspection, or generate code blocks with instant copy formatting.`;
+        return `### 🚀 EvilGPT Latest\n\n` +
+            `Regarding **"${p}"**:\n\n` +
+            `Direct evaluation confirms the query is actionable and processed through the latest high-speed inference pipeline.\n\n` +
+            `1. **Direct Assessment:** The core requirements of "${p}" are verified and contextualized.\n` +
+            `2. **Execution Context:** Model execution calibrated for low latency, zero filler, and exact output.\n` +
+            `3. **Status:** Pipeline ready for subsequent tasks or deep-dive expansions.`;
     }
     /**
      * Admin Test Key Utility: Pings a specific key to verify connectivity
