@@ -33,8 +33,12 @@ class KeyPoolManager {
         key.last_error_message = errorMessage;
         key.last_used_at = new Date().toISOString();
         key.updated_at = new Date().toISOString();
+        // Drop priority of exhausted or failed key so it sinks to the bottom
+        if (status === 'exhausted' || status === 'rate_limited') {
+            key.priority_order = Math.max(90, key.priority_order + 10);
+        }
         db_1.db.apiKeys.set(keyId, key);
-        console.warn(`[KeyPoolManager] ⚠️ Key marked ${status}: "${key.key_alias}" - Reason: ${errorMessage}`);
+        console.warn(`[KeyPoolManager] ⚠️ Key marked ${status} (Priority demoted to #${key.priority_order}): "${key.key_alias}" - Reason: ${errorMessage}`);
     }
     /**
      * Record successful execution of a key
@@ -99,6 +103,57 @@ class KeyPoolManager {
         // If the key alias contains 'exhausted' or simulated error flag, trigger failure to demonstrate failover
         if (key.key_alias.toLowerCase().includes('exhausted') || key.encrypted_key.includes('exhausted')) {
             throw new Error(`HTTP 402 Payment Required: Upstream ${key.provider} quota exhausted for key ${key.key_alias}`);
+        }
+        // Real Dahl Inference API call
+        if (key.provider === 'dahl' || key.encrypted_key.startsWith('dahl_')) {
+            try {
+                let mappedModel = 'dahl-default';
+                const reqModel = (request.model || '').toLowerCase();
+                if (reqModel.includes('coder') || reqModel.includes('pro')) {
+                    mappedModel = 'dahl-coder-pro';
+                }
+                else if (reqModel.includes('big')) {
+                    mappedModel = 'dahl-reasoning-big';
+                }
+                else if (reqModel.includes('latest')) {
+                    mappedModel = 'dahl-latest';
+                }
+                const endpoint = process.env.DAHL_ENDPOINT || 'https://inference.dahl.global/v1/chat/completions';
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${key.encrypted_key}`
+                    },
+                    body: JSON.stringify({
+                        model: mappedModel,
+                        messages: request.messages
+                    })
+                });
+                // 5% token remaining quota suspension rule
+                const remTokens = Number(response.headers.get('x-ratelimit-remaining-tokens') || response.headers.get('ratelimit-remaining-tokens'));
+                const limTokens = Number(response.headers.get('x-ratelimit-limit-tokens') || response.headers.get('ratelimit-limit-tokens'));
+                if (limTokens > 0 && !isNaN(remTokens)) {
+                    const tokenRatio = remTokens / limTokens;
+                    if (tokenRatio <= 0.05) {
+                        console.warn(`[KeyPoolManager] ⚠️ Key "${key.key_alias}" has <= 5% tokens remaining (${(tokenRatio * 100).toFixed(1)}%). Auto-suspending key.`);
+                        this.markKeyFailure(key.id, 'exhausted', `Auto-suspended: <= 5% tokens remaining (${(tokenRatio * 100).toFixed(1)}%)`);
+                    }
+                }
+                if (!response.ok) {
+                    const errBody = await response.text();
+                    throw new Error(`Dahl Inference HTTP ${response.status} ${response.statusText}: ${errBody}`);
+                }
+                const data = await response.json();
+                return {
+                    content: data.choices?.[0]?.message?.content || 'No response returned from Dahl model.',
+                    model: data.model || mappedModel,
+                    tokensUsed: data.usage?.total_tokens || 40
+                };
+            }
+            catch (err) {
+                throw err;
+            }
         }
         // Real OpenRouter API call
         if (key.provider === 'openrouter' || key.encrypted_key.startsWith('sk-or-')) {

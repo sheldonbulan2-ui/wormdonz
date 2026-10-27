@@ -339,10 +339,11 @@ export const ApiKeyPoolPage: React.FC<ApiKeyPoolPageProps> = ({ keys, onRefresh 
                   onChange={(e) => setProvider(e.target.value as any)}
                   className="w-full px-3 py-2.5 rounded-xl bg-charcoal-900 border border-charcoal-700 text-white focus:outline-none focus:border-electric-500"
                 >
+                  <option value="dahl">Dahl Inference (inference.dahl.global)</option>
+                  <option value="openrouter">OpenRouter Multi-Cluster</option>
                   <option value="openai">OpenAI (gpt-4o, o3-mini)</option>
                   <option value="anthropic">Anthropic (Claude 3.7)</option>
                   <option value="gemini">Google Gemini 2.0</option>
-                  <option value="openrouter">OpenRouter Multi-Cluster</option>
                 </select>
               </div>
 

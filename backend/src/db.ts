@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export type UserTier = 'free' | 'start' | 'basic' | 'pro';
 export type ApiKeyStatus = 'active' | 'exhausted' | 'rate_limited' | 'disabled';
-export type ApiProvider = 'openai' | 'anthropic' | 'gemini' | 'openrouter';
+export type ApiProvider = 'openai' | 'anthropic' | 'gemini' | 'openrouter' | 'dahl';
 export type MessageRole = 'user' | 'assistant' | 'system';
 
 export interface User {

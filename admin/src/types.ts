@@ -1,5 +1,5 @@
 export type ApiKeyStatus = 'active' | 'exhausted' | 'rate_limited' | 'disabled';
-export type ApiProvider = 'openai' | 'anthropic' | 'gemini' | 'openrouter';
+export type ApiProvider = 'openai' | 'anthropic' | 'gemini' | 'openrouter' | 'dahl';
 export type UserTier = 'free' | 'start' | 'basic' | 'pro';
 
 export interface OverviewMetrics {
