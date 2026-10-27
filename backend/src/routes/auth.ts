@@ -6,8 +6,9 @@ import { EmailService } from '../services/emailService';
 
 export const authRouter = Router();
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'WormDonz@Admin2026';
-const ADMIN_2FA_CODE = process.env.ADMIN_2FA_CODE || '948216';
+let ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'WormDonz@Admin2026';
+let ADMIN_2FA_CODE = process.env.ADMIN_2FA_CODE || '948216';
+const ADMIN_EMAIL = 'sheldonbulan2@gmail.com';
 
 // Comprehensive list of disposable/temporary email provider domains
 const DISPOSABLE_EMAIL_DOMAINS = new Set([
@@ -536,9 +537,136 @@ authRouter.post('/admin/login', (req: Request, res: Response) => {
     adminToken,
     expiresIn: '24h',
     admin: {
-      role: 'Root Architect',
-      email: 'dj@wormdonz.ai',
+      role: 'Root Architect / Owner',
+      email: ADMIN_EMAIL,
       twoFactorVerified: true
     }
+  });
+});
+
+/**
+ * 7. Admin Password Reset Request -> Sends OTP to sheldonbulan2@gmail.com
+ */
+authRouter.post('/admin/request-reset', async (req: Request, res: Response) => {
+  const { email } = req.body;
+  const targetEmail = (email ? String(email).trim().toLowerCase() : ADMIN_EMAIL);
+
+  if (targetEmail !== ADMIN_EMAIL.toLowerCase() && targetEmail !== 'dj@wormdonz.ai') {
+    return res.status(403).json({
+      success: false,
+      error: `Access denied. Only registered administrator (${ADMIN_EMAIL}) can request admin password reset.`
+    });
+  }
+
+  // Generate 6-digit OTP code for reset
+  const otp = EmailService.generateOtp();
+  const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+  db.passwordResets.set(targetEmail, {
+    email: targetEmail,
+    otp,
+    expires_at: expiresAt
+  });
+
+  const emailResult = await EmailService.sendVerificationOtp(
+    targetEmail,
+    'Sheldon Bulan (Owner)',
+    otp,
+    'forgot_password'
+  );
+
+  return res.json({
+    success: true,
+    message: `A 6-digit administrator password reset code has been sent to ${targetEmail}.`,
+    targetEmail,
+    previewOtp: emailResult.deliveredVia === 'fallback_preview' ? otp : undefined
+  });
+});
+
+/**
+ * 8. Admin Change/Reset Password (via OTP or Current Credentials)
+ */
+authRouter.post('/admin/change-password', async (req: Request, res: Response) => {
+  const { email, otp, currentPassword, twoFactorCode, newPassword } = req.body;
+
+  if (!newPassword || String(newPassword).trim().length < 6) {
+    return res.status(400).json({
+      success: false,
+      error: 'New password must be at least 6 characters long.'
+    });
+  }
+
+  const cleanNewPass = String(newPassword).trim();
+  let isAuthorized = false;
+
+  // Path A: OTP-based reset via sheldonbulan2@gmail.com
+  if (otp) {
+    const cleanEmail = email ? String(email).trim().toLowerCase() : ADMIN_EMAIL.toLowerCase();
+    const cleanOtp = String(otp).trim();
+    const resetRecord = db.passwordResets.get(cleanEmail);
+
+    if (!resetRecord) {
+      return res.status(400).json({
+        success: false,
+        error: 'No active password reset request found. Please request a new code.'
+      });
+    }
+
+    if (resetRecord.expires_at < Date.now()) {
+      db.passwordResets.delete(cleanEmail);
+      return res.status(400).json({
+        success: false,
+        error: 'The verification code has expired. Please request a new code.'
+      });
+    }
+
+    if (resetRecord.otp !== cleanOtp) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid 6-digit verification code.'
+      });
+    }
+
+    isAuthorized = true;
+    db.passwordResets.delete(cleanEmail);
+  }
+  // Path B: Current password + 2FA
+  else if (currentPassword && twoFactorCode) {
+    if (String(currentPassword).trim() === ADMIN_PASSWORD && String(twoFactorCode).trim() === ADMIN_2FA_CODE) {
+      isAuthorized = true;
+    } else {
+      return res.status(401).json({
+        success: false,
+        error: 'Current administrator password or 2FA code is incorrect.'
+      });
+    }
+  }
+
+  if (!isAuthorized) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authorization failed. Provide valid OTP or current credentials.'
+    });
+  }
+
+  // Update in-memory ADMIN_PASSWORD
+  ADMIN_PASSWORD = cleanNewPass;
+
+  // Update sheldon user password hash
+  const sheldon = Array.from(db.users.values()).find(
+    u => u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+  );
+  if (sheldon) {
+    sheldon.password_hash = hashPassword(cleanNewPass);
+    sheldon.updated_at = new Date().toISOString();
+    db.users.set(sheldon.id, sheldon);
+  }
+
+  console.log(`[Auth] 🔑 Admin password updated successfully for ${ADMIN_EMAIL}`);
+
+  return res.json({
+    success: true,
+    message: `Administrator password updated successfully! You can now log in with your new password.`,
+    email: ADMIN_EMAIL
   });
 });

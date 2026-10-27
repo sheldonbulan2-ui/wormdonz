@@ -1056,9 +1056,14 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
       setState(() => _currentUser.credits = 0);
       _showZeroCreditSheet();
     } else {
+      String rawMsg = event['message'] ?? 'Network or upstream failover failed';
+      if (rawMsg.contains('TimeoutException') || rawMsg.contains('Future not completed') || rawMsg.contains('0:01:20')) {
+        rawMsg = '⚡ WormDonz server is waking up (Render spin-up). Please tap send again in 5 seconds.';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(event['message'] ?? 'Network or upstream failover failed'),
+          content: Text(rawMsg),
           backgroundColor: const Color(0xFFFF3B30),
         ),
       );

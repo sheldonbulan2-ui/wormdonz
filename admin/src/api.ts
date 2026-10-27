@@ -48,6 +48,48 @@ export const adminApi = {
     return !!sessionStorage.getItem('wmdz_admin_token');
   },
 
+  // Admin Password Reset Request -> Sends OTP to sheldonbulan2@gmail.com
+  async requestAdminPasswordReset(email?: string): Promise<{ success: boolean; message?: string; targetEmail?: string; error?: string }> {
+    try {
+      const res = await fetch(`${BASE_URL}/auth/admin/request-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email || 'sheldonbulan2@gmail.com' })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        return { success: true, message: data.message, targetEmail: data.targetEmail };
+      }
+      return { success: false, error: data.error || 'Failed to request admin password reset' };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Network error requesting password reset' };
+    }
+  },
+
+  // Admin Change Password (via OTP or Current Credentials)
+  async changeAdminPassword(payload: {
+    email?: string;
+    otp?: string;
+    currentPassword?: string;
+    twoFactorCode?: string;
+    newPassword: string;
+  }): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const res = await fetch(`${BASE_URL}/auth/admin/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        return { success: true, message: data.message };
+      }
+      return { success: false, error: data.error || 'Failed to change admin password' };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Network error updating password' };
+    }
+  },
+
   // 1. Overview
   async getOverview(): Promise<{ metrics: OverviewMetrics }> {
     try {

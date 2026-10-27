@@ -200,8 +200,8 @@ export class KeyPoolManager {
         }
         parts.push({ text: userPrompt });
 
-        // Highly available models with cascade failover (gemini-3.5-flash is stable; gemini-3.8-flash has traffic spikes)
-        const candidateModels = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash'];
+        // Fast, highly available models with cascade failover
+        const candidateModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
         let lastError: any = null;
 
         for (const geminiModel of candidateModels) {
@@ -210,7 +210,8 @@ export class KeyPoolManager {
             const response = await fetch(url, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ contents: [{ parts }] })
+              body: JSON.stringify({ contents: [{ parts }] }),
+              signal: AbortSignal.timeout(10000) // 10s timeout prevents hung connections
             });
 
             if (!response.ok) {
@@ -266,7 +267,8 @@ export class KeyPoolManager {
           body: JSON.stringify({
             model: mappedModel,
             messages: request.messages && request.messages.length > 0 ? request.messages : [{ role: 'user', content: 'ping' }]
-          })
+          }),
+          signal: AbortSignal.timeout(12000)
         });
 
         // 5% token remaining quota suspension rule

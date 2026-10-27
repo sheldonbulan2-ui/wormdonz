@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -105,7 +106,7 @@ class ApiService {
           'email': cleanEmail,
           'password': cleanPass,
         }),
-      ).timeout(const Duration(seconds: 12));
+      ).timeout(const Duration(seconds: 35));
 
       final data = jsonDecode(res.body);
       if (res.statusCode == 200) {
@@ -119,6 +120,8 @@ class ApiService {
       } else {
         throw Exception(data['error'] ?? 'Registration failed. Please try again.');
       }
+    } on TimeoutException {
+      throw Exception('Server is waking up (Render cold-start). Please try again in 5 seconds.');
     } catch (e) {
       debugPrint('[ApiService] Register error: $e');
       throw Exception(e.toString().replaceAll('Exception: ', ''));
@@ -141,7 +144,7 @@ class ApiService {
           'email': cleanEmail,
           'otp': cleanOtp,
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
 
       final data = jsonDecode(res.body);
       if (res.statusCode == 200 || res.statusCode == 201) {
@@ -151,6 +154,8 @@ class ApiService {
       } else {
         throw Exception(data['error'] ?? 'Invalid or expired OTP code.');
       }
+    } on TimeoutException {
+      throw Exception('Server is waking up (Render cold-start). Please try again in 5 seconds.');
     } catch (e) {
       debugPrint('[ApiService] Verify OTP error: $e');
       throw Exception(e.toString().replaceAll('Exception: ', ''));
@@ -164,7 +169,7 @@ class ApiService {
         Uri.parse('$baseUrl/auth/resend-otp'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email.trim().toLowerCase()}),
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 30));
 
       final data = jsonDecode(res.body);
       if (res.statusCode == 200) {
@@ -172,6 +177,8 @@ class ApiService {
       } else {
         throw Exception(data['error'] ?? 'Failed to resend verification code.');
       }
+    } on TimeoutException {
+      throw Exception('Server is waking up (Render cold-start). Please try again in 5 seconds.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
@@ -184,7 +191,7 @@ class ApiService {
         Uri.parse('$baseUrl/auth/forgot-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email.trim().toLowerCase()}),
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 30));
 
       final data = jsonDecode(res.body);
       if (res.statusCode == 200) {
@@ -196,6 +203,8 @@ class ApiService {
       } else {
         throw Exception(data['error'] ?? 'Failed to request password reset.');
       }
+    } on TimeoutException {
+      throw Exception('Server is waking up (Render cold-start). Please try again in 5 seconds.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
@@ -216,7 +225,7 @@ class ApiService {
           'otp': otp.trim(),
           'newPassword': newPassword.trim(),
         }),
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 30));
 
       final data = jsonDecode(res.body);
       if (res.statusCode == 200) {
@@ -226,6 +235,8 @@ class ApiService {
       } else {
         throw Exception(data['error'] ?? 'Password reset failed.');
       }
+    } on TimeoutException {
+      throw Exception('Server is waking up (Render cold-start). Please try again in 5 seconds.');
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
     }
@@ -247,7 +258,7 @@ class ApiService {
           'identifier': cleanId,
           'password': cleanPass,
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 30));
 
       final data = jsonDecode(res.body);
       if (res.statusCode == 200) {
@@ -257,6 +268,8 @@ class ApiService {
       } else {
         throw Exception(data['error'] ?? 'Invalid credentials. Please try again.');
       }
+    } on TimeoutException {
+      throw Exception('Server is waking up (Render cold-start). Please try again in 5 seconds.');
     } catch (e) {
       debugPrint('[ApiService] Login error: $e');
       throw Exception(e.toString().replaceAll('Exception: ', ''));
@@ -524,7 +537,7 @@ class ApiService {
         'stream': true,
       });
 
-      final streamedResponse = await client.send(req).timeout(const Duration(seconds: 45));
+      final streamedResponse = await client.send(req).timeout(const Duration(seconds: 60));
 
       if (streamedResponse.statusCode == 403) {
         final bodyStr = await streamedResponse.stream.bytesToString();
@@ -543,36 +556,40 @@ class ApiService {
 
       if (streamedResponse.statusCode == 200) {
         String buffer = '';
-        await for (final chunk in streamedResponse.stream.transform(utf8.decoder)) {
-          buffer += chunk;
-          final lines = buffer.split('\n');
-          buffer = lines.removeLast();
+        try {
+          await for (final chunk in streamedResponse.stream.transform(utf8.decoder)) {
+            buffer += chunk;
+            final lines = buffer.split('\n');
+            buffer = lines.removeLast();
 
-          for (final line in lines) {
-            final trimmed = line.trim();
-            if (trimmed.startsWith('data: ')) {
-              final payload = trimmed.substring(6).trim();
-              if (payload == '[DONE]') {
-                hasStreamedLive = true;
-                yield {'type': 'done', 'chatId': chatId};
-                return;
-              }
-              try {
-                final json = jsonDecode(payload);
-                if (json['token'] != null) {
+            for (final line in lines) {
+              final trimmed = line.trim();
+              if (trimmed.startsWith('data: ')) {
+                final payload = trimmed.substring(6).trim();
+                if (payload == '[DONE]') {
                   hasStreamedLive = true;
-                  yield {'type': 'token', 'value': json['token'] as String};
-                } else if (json['done'] == true) {
-                  hasStreamedLive = true;
-                  yield {'type': 'done', ...json};
-                  return;
-                } else if (json['error'] != null) {
-                  yield {'type': 'error', 'message': json['error']};
+                  yield {'type': 'done', 'chatId': chatId};
                   return;
                 }
-              } catch (_) {}
+                try {
+                  final json = jsonDecode(payload);
+                  if (json['token'] != null) {
+                    hasStreamedLive = true;
+                    yield {'type': 'token', 'value': json['token'] as String};
+                  } else if (json['done'] == true) {
+                    hasStreamedLive = true;
+                    yield {'type': 'done', ...json};
+                    return;
+                  } else if (json['error'] != null) {
+                    yield {'type': 'error', 'message': json['error']};
+                    return;
+                  }
+                } catch (_) {}
+              }
             }
           }
+        } catch (streamErr) {
+          debugPrint('[ApiService] Stream chunk reader ended/handled: $streamErr');
         }
       }
     } catch (e) {

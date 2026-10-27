@@ -112,7 +112,7 @@ app.get('/api/app/version', (req, res) => {
   res.json({
     appName: 'WormDonz AI',
     packageName: 'com.wormdonz.app',
-    version: '1.0.0+1',
+    version: '1.1.0+2',
     releaseDate: '2026-10-27',
     fileSize,
     downloadUrl: '/api/download/apk',
@@ -122,9 +122,9 @@ app.get('/api/app/version', (req, res) => {
       'Pure OLED Dark Mode (#000000) & High-Contrast Light Mode',
       'Automatic Multi-Provider API Key Failover (Zero Downtime)',
       '10 Initial Welcome Credits on signup',
-      'Instant Promo Code Redemption Engine (Gift vouchers)',
-      'Start, Basic & Pro Comparative Subscription Paywall',
-      'Live waveform voice button & floating pill input bar'
+      'Eliminated 80s stream timeouts with immediate SSE keepalive pings',
+      'Fast Google Gemini 2.5/2.0 Flash models failover cascade',
+      'Added Admin Password Reset on web for sheldonbulan2@gmail.com'
     ]
   });
 });
@@ -135,22 +135,22 @@ const handleApkDownload = (req: express.Request, res: express.Response) => {
     path.join(__dirname, '../public/downloads/wormdonz.apk'),
     path.join(__dirname, '../../admin/dist/downloads/wormdonz.apk'),
     path.join(__dirname, '../../admin/public/downloads/wormdonz.apk'),
-    path.join(__dirname, '../../mobile/build/app/outputs/flutter-apk/app-debug.apk'),
     path.join(__dirname, '../../mobile/build/app/outputs/flutter-apk/app-release.apk'),
+    path.join(__dirname, '../../mobile/build/app/outputs/flutter-apk/app-debug.apk'),
     path.join(__dirname, '../../mobile/build/app/outputs/apk/debug/app-debug.apk'),
   ];
 
   for (const candidate of apkCandidates) {
     if (fs.existsSync(candidate)) {
-      res.setHeader('Content-Disposition', 'attachment; filename="wormdonz-ai-v1.0.apk"');
+      res.setHeader('Content-Disposition', 'attachment; filename="wormdonz-ai-v1.1.0.apk"');
       res.setHeader('Content-Type', 'application/vnd.android.package-archive');
       return res.sendFile(candidate);
     }
   }
 
-  res.setHeader('Content-Disposition', 'attachment; filename="wormdonz-ai-v1.0.apk"');
+  res.setHeader('Content-Disposition', 'attachment; filename="wormdonz-ai-v1.1.0.apk"');
   res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-  res.send(Buffer.from('WormDonz Android Release APK (v1.0.0+1) - Ready for Android install.'));
+  res.send(Buffer.from('WormDonz Android Release APK (v1.1.0+2) - Ready for Android install.'));
 };
 
 app.get('/api/download/apk', handleApkDownload);

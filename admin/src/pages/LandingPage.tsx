@@ -95,7 +95,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
           </div>
           <span className="font-extrabold text-base tracking-tight text-white">WormDonz AI</span>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-electric-500/10 text-electric-400 border border-electric-500/30">
-            v1.0.0 MOBILE APK
+            v1.1.0 RELEASE APK
           </span>
         </div>
 
@@ -112,7 +112,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
             onClick={onEnterDashboard}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-charcoal-800 hover:bg-charcoal-700 border border-charcoal-700 text-xs font-semibold text-white transition"
           >
-            <span>Admin Dashboard</span>
+            <span>Admin Control / Login</span>
             <ArrowRight className="w-3.5 h-3.5 text-electric-400" />
           </button>
         </div>
@@ -128,7 +128,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-electric-500/10 border border-electric-500/30 text-xs text-electric-400 font-semibold">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>PRODUCTION-READY CROSS-PLATFORM AI APP</span>
+              <span>PRODUCTION-READY v1.1.0 AI APP</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
@@ -152,12 +152,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
                     WormDonz Android Application
                   </div>
                   <div className="text-xs text-neutral-400 mt-0.5">
-                    Package: <span className="font-mono text-neutral-300">wormdonz-ai-v1.0.apk</span> • Size: <span className="text-neutral-300 font-mono">52.2 MB</span>
+                    Package: <span className="font-mono text-neutral-300">wormdonz-ai-v1.1.0.apk</span> • Size: <span className="text-neutral-300 font-mono">52.4 MB</span>
                   </div>
                 </div>
 
                 <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 w-fit">
-                  RELEASE v1.0.0+1
+                  RELEASE v1.1.0+2
                 </span>
               </div>
 
@@ -165,18 +165,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <a
                   href="/api/download/apk"
-                  download="wormdonz-ai-v1.0.apk"
+                  download="wormdonz-ai-v1.1.0.apk"
                   className="flex-1 flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-electric-500 hover:bg-electric-600 text-white font-bold text-sm shadow-xl shadow-electric-500/30 hover:shadow-electric-500/40 transition duration-150 transform hover:-translate-y-0.5"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Download WormDonz APK</span>
+                  <span>Download WormDonz APK (v1.1.0)</span>
                 </a>
 
                 <button
                   onClick={onEnterDashboard}
                   className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-charcoal-700 hover:bg-charcoal-600 border border-charcoal-600 text-white font-semibold text-sm transition"
                 >
-                  <span>Open Admin Control</span>
+                  <span>Admin Control</span>
                   <ChevronRight className="w-4 h-4 text-neutral-400" />
                 </button>
               </div>

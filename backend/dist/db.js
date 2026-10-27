@@ -1,6 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.db = void 0;
+const crypto_1 = __importDefault(require("crypto"));
 // In-Memory Repository with TiDB Synchronization
 class DatabaseStore {
     users = new Map();
@@ -104,6 +108,23 @@ class DatabaseStore {
             updated_at: new Date().toISOString()
         };
         this.users.set(defaultUser.id, defaultUser);
+        // Primary Administrator & Owner Account
+        const sheldonUser = {
+            id: 'user-sheldon',
+            email: 'sheldonbulan2@gmail.com',
+            username: 'sheldon',
+            password_hash: crypto_1.default.createHash('sha256').update('WormDonz@Admin2026' + 'wormdonz_salt_2026').digest('hex'),
+            is_email_verified: true,
+            display_name: 'Sheldon Bulan (Owner)',
+            credits: 1000,
+            tier: 'pro',
+            is_banned: false,
+            image_used_lifetime: 0,
+            image_used_today: 0,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        this.users.set(sheldonUser.id, sheldonUser);
     }
 }
 exports.db = new DatabaseStore();

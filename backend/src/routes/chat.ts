@@ -193,8 +193,23 @@ chatRouter.post('/send', async (req: Request, res: Response) => {
   // 4. Handle Streaming vs Non-Streaming
   if (stream) {
     res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    
+    // Flush response headers immediately to establish connection without delay
+    if (typeof (res as any).flushHeaders === 'function') {
+      (res as any).flushHeaders();
+    }
+    // Write initial comment to force TCP/TLS socket packet dispatch
+    res.write(': keepalive\n\n');
+
+    // Periodic keep-alive ping every 10s prevents reverse proxy / Dart socket timeout
+    const keepAliveTimer = setInterval(() => {
+      if (!res.writableEnded) {
+        res.write(': ping\n\n');
+      }
+    }, 10000);
 
     try {
       // Execute through failover engine
@@ -204,7 +219,7 @@ chatRouter.post('/send', async (req: Request, res: Response) => {
       const tokens = failoverResult.content.split(' ');
       for (const token of tokens) {
         res.write(`data: ${JSON.stringify({ token: token + ' ' })}\n\n`);
-        await new Promise(r => setTimeout(r, 25));
+        await new Promise(r => setTimeout(r, 20));
       }
 
       // Deduct model-dependent credit cost atomically
@@ -237,6 +252,8 @@ chatRouter.post('/send', async (req: Request, res: Response) => {
       console.error('[ChatRouter] Stream failover exhausted:', err.message);
       res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
       res.end();
+    } finally {
+      clearInterval(keepAliveTimer);
     }
   } else {
     // Non-streaming response
