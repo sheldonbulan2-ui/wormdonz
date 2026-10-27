@@ -74,6 +74,13 @@ export const App: React.FC = () => {
     setCurrentTab(tab);
   };
 
+  const handleLogout = () => {
+    adminApi.logoutAdmin();
+    sessionStorage.clear();
+    localStorage.removeItem('wmdz_admin_token');
+    setCurrentTab('landing');
+  };
+
   const handle2FASuccess = () => {
     setIs2FAVerified(true);
     setShow2FAModal(false);
@@ -151,6 +158,7 @@ export const App: React.FC = () => {
       <Sidebar
         currentTab={currentTab}
         onSelectTab={handleSelectTab}
+        onLogout={handleLogout}
         activeKeysCount={metrics.activeKeysCount}
         exhaustedKeysCount={metrics.exhaustedKeysCount}
       />
@@ -161,6 +169,7 @@ export const App: React.FC = () => {
           title={title}
           subtitle={subtitle}
           onRefresh={loadAllData}
+          onLogout={handleLogout}
           isRefreshing={isRefreshing}
         />
 

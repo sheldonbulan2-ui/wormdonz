@@ -7,12 +7,14 @@ import {
   Sliders, 
   ShieldCheck,
   ExternalLink,
-  Zap
+  Zap,
+  LogOut
 } from 'lucide-react';
 
 interface SidebarProps {
   currentTab: string;
   onSelectTab: (tab: string) => void;
+  onLogout?: () => void;
   activeKeysCount: number;
   exhaustedKeysCount: number;
 }
@@ -20,6 +22,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onSelectTab,
+  onLogout,
   activeKeysCount,
   exhaustedKeysCount
 }) => {
@@ -130,16 +133,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <div className="flex items-center justify-between text-[11px] text-neutral-400 pt-1 border-t border-charcoal-800">
-          <span className="font-mono text-neutral-500">v1.1.0 Ready</span>
           <a
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 text-electric-400 hover:text-electric-300 transition"
+            className="flex items-center gap-1 text-neutral-400 hover:text-white transition"
           >
             <span>Public Site</span>
             <ExternalLink className="w-3 h-3" />
           </a>
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1 text-rose-400 hover:text-rose-300 font-medium transition"
+              title="Sign out of Admin Dashboard"
+            >
+              <LogOut className="w-3 h-3" />
+              <span>Sign Out</span>
+            </button>
+          )}
         </div>
       </div>
     </aside>

@@ -1,10 +1,11 @@
 import React from 'react';
-import { RefreshCw, Play, ShieldAlert, Sparkles } from 'lucide-react';
+import { RefreshCw, Play, ShieldAlert, Sparkles, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   title: string;
   subtitle: string;
   onRefresh: () => void;
+  onLogout?: () => void;
   isRefreshing?: boolean;
 }
 
@@ -12,6 +13,7 @@ export const Header: React.FC<HeaderProps> = ({
   title,
   subtitle,
   onRefresh,
+  onLogout,
   isRefreshing = false
 }) => {
   return (
@@ -35,10 +37,23 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onRefresh}
           disabled={isRefreshing}
           className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-charcoal-800 hover:bg-charcoal-700 border border-charcoal-700/60 text-xs font-medium text-neutral-300 hover:text-white transition"
+          title="Synchronize database telemetry"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-electric-500' : ''}`} />
           <span>Sync</span>
         </button>
+
+        {/* Logout button */}
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-charcoal-800 hover:bg-rose-500/20 border border-charcoal-700/60 hover:border-rose-500/40 text-xs font-medium text-neutral-300 hover:text-rose-400 transition"
+            title="Log out from Admin Dashboard"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Logout</span>
+          </button>
+        )}
       </div>
     </header>
   );
