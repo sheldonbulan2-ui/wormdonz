@@ -10,7 +10,7 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-enum AuthMode { register, verifyOtp, login, forgotPassword, resetPassword, telegram }
+enum AuthMode { register, verifyOtp, login, forgotPassword, resetPassword }
 
 class _AuthScreenState extends State<AuthScreen> {
   AuthMode _mode = AuthMode.register;
@@ -21,7 +21,6 @@ class _AuthScreenState extends State<AuthScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPassController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
-  final TextEditingController _telegramController = TextEditingController();
   final TextEditingController _referralController = TextEditingController();
 
   bool _obscurePassword = true;
@@ -43,7 +42,6 @@ class _AuthScreenState extends State<AuthScreen> {
     _passwordController.dispose();
     _confirmPassController.dispose();
     _otpController.dispose();
-    _telegramController.dispose();
     _referralController.dispose();
     super.dispose();
   }
@@ -301,33 +299,6 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       );
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HomeChatScreen(currentUser: user)),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _errorMessage = e.toString().replaceAll('Exception:', '').trim());
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _handleTelegramLogin() async {
-    final rawInput = _telegramController.text.trim();
-    if (rawInput.isEmpty) {
-      setState(() => _errorMessage = 'Please enter your Telegram username or ID.');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final user = await ApiService.loginWithTelegram(username: rawInput);
-      if (!mounted) return;
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => HomeChatScreen(currentUser: user)),
@@ -954,74 +925,11 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                         ),
                       ],
-
-                      // 4. TELEGRAM FALLBACK VIEW
-                      if (_mode == AuthMode.telegram) ...[
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              onPressed: () => setState(() => _mode = AuthMode.register),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Telegram Authentication',
-                              style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        _buildInputField(
-                          controller: _telegramController,
-                          label: 'Telegram Username',
-                          hint: '@your_telegram_handle',
-                          icon: Icons.send_rounded,
-                        ),
-                        const SizedBox(height: 18),
-                        ElevatedButton(
-                          onPressed: _isLoading ? null : _handleTelegramLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF229ED9),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: 0,
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                )
-                              : const Text(
-                                  'Connect with Telegram',
-                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                                ),
-                        ),
-                      ],
                     ],
                   ),
                 ),
 
                 const SizedBox(height: 20),
-
-                // Quick Telegram Link Toggle
-                if (_mode != AuthMode.telegram && _mode != AuthMode.verifyOtp)
-                  Center(
-                    child: TextButton.icon(
-                      icon: const Icon(Icons.send_rounded, size: 16, color: Color(0xFF229ED9)),
-                      label: const Text(
-                        'Or connect via Telegram handle',
-                        style: TextStyle(color: Color(0xFF229ED9), fontSize: 13, fontWeight: FontWeight.w600),
-                      ),
-                      onPressed: () => setState(() {
-                        _mode = AuthMode.telegram;
-                        _errorMessage = null;
-                      }),
-                    ),
-                  ),
 
                 const SizedBox(height: 16),
                 Center(

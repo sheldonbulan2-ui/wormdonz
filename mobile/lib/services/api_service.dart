@@ -541,7 +541,7 @@ class ApiService {
     required String prompt,
     String? chatId,
     String userId = defaultUserId,
-    String model = 'evilgpt-latest',
+    String model = 'wormdonz-fast',
     List<String>? images,
   }) async* {
     bool hasStreamedLive = false;
@@ -653,19 +653,23 @@ class ApiService {
     final p = prompt.trim();
     final pLower = p.toLowerCase();
 
+    if (pLower.contains('sino ka') || pLower.contains('who are you') || pLower.contains('ano ka') || pLower.contains('what is wormdonz')) {
+      return "Ako si WormDonz AI, isang matalino at mabilis na AI assistant na nilikha ni dj para tulungan ka sa coding, pagsusuri, pananaliksik, at pang-araw-araw na mga gawain.";
+    }
+
     if (m.contains('coder') || m.contains('pro')) {
       String codeSnippet = '';
       if (pLower.contains('python') || pLower.contains('reverse')) {
-        codeSnippet = "```python\n# EvilGPT Coder Pro - High Performance Python\ndef process_query(data):\n    if isinstance(data, str):\n        return data[::-1]\n    return list(reversed(data))\n\nprint(process_query('$p'))\n```";
+        codeSnippet = "```python\n# WormDonz Coder Pro - High Performance Python\ndef process_query(data):\n    if isinstance(data, str):\n        return data[::-1]\n    return list(reversed(data))\n\nprint(process_query('$p'))\n```";
       } else if (pLower.contains('dart') || pLower.contains('flutter')) {
-        codeSnippet = "```dart\n// EvilGPT Coder Pro - Clean Flutter/Dart\nclass Solution {\n  final String prompt;\n  const Solution(this.prompt);\n  void run() => debugPrint('Execution: \$prompt');\n}\n```";
+        codeSnippet = "```dart\n// WormDonz Coder Pro - Clean Flutter/Dart\nclass Solution {\n  final String prompt;\n  const Solution(this.prompt);\n  void run() => debugPrint('Execution: \$prompt');\n}\n```";
       } else if (pLower.contains('sql') || pLower.contains('database') || pLower.contains('query')) {
         codeSnippet = "```sql\n-- Production query with parameterization\nSELECT id, username, credits, tier\nFROM users\nWHERE id = :userId\nLIMIT 1;\n```";
       } else {
-        codeSnippet = "```bash\n# Production systems script\necho \"[EvilGPT Coder Pro] Executing: $p\"\nset -euo pipefail\n```";
+        codeSnippet = "```bash\n# Production systems script\necho \"[WormDonz Coder Pro] Executing: $p\"\nset -euo pipefail\n```";
       }
 
-      return "### ⚡ EvilGPT Coder Pro\n\n"
+      return "### ⚡ WormDonz Coder Pro\n\n"
           "Here is the engineered implementation for **\"$p\"**:\n\n"
           "$codeSnippet\n\n"
           "**Specifications:**\n"
@@ -675,7 +679,7 @@ class ApiService {
     }
 
     if (m.contains('big') || m.contains('reasoning')) {
-      return "### 🧠 EvilGPT BIG — Deep Reasoning Analysis\n\n"
+      return "### 🧠 WormDonz Reasoning — Deep Analysis\n\n"
           "**Systematic Analysis on:** *\"$p\"*\n\n"
           "#### 1. First-Principles Deconstruction\n"
           "Evaluating *\"$p\"* involves inspecting underlying constraints and functional requirements:\n"
@@ -688,7 +692,7 @@ class ApiService {
           "Execution strategy for *\"$p\"* verified against resilience benchmarks.";
     }
 
-    return "### 🚀 EvilGPT Latest\n\n"
+    return "### 🚀 WormDonz Fast\n\n"
         "Regarding: **\"$p\"**\n\n"
         "Direct evaluation confirms the query is actionable and processed through the latest high-speed inference pipeline.\n\n"
         "1. **Core Insight:** Direct response to *\"$p\"* synthesized with high-throughput clarity.\n"
@@ -706,7 +710,7 @@ class ApiService {
     return chunks;
   }
 
-  static List<String> _generateSimulatedStreamingChunks(String prompt, [String model = 'evilgpt-latest']) {
+  static List<String> _generateSimulatedStreamingChunks(String prompt, [String model = 'wormdonz-fast']) {
     final text = _generatePersonaResponseText(prompt, model);
     final words = text.split(' ');
     final List<String> chunks = [];

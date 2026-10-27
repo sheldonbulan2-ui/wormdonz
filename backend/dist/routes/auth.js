@@ -44,6 +44,30 @@ function isDisposableEmail(email) {
 function hashPassword(password) {
     return crypto_1.default.createHash('sha256').update(password + 'wormdonz_salt_2026').digest('hex');
 }
+// Daily OTP Rate Limiter: Strictly 1 One-Time PIN per 24 hours per email
+const dailyOtpRequests = new Map();
+function checkDailyOtpLimit(email) {
+    const clean = email.toLowerCase().trim();
+    // Owner testing bypass
+    if (clean === 'sheldonbulan2@gmail.com') {
+        return { allowed: true };
+    }
+    const now = Date.now();
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+    const record = dailyOtpRequests.get(clean);
+    if (record) {
+        const elapsed = now - record.lastRequestedAt;
+        if (elapsed < ONE_DAY_MS) {
+            const remainingHours = Math.ceil((ONE_DAY_MS - elapsed) / (60 * 60 * 1000));
+            return {
+                allowed: false,
+                error: `⚠️ Limit: One-time PIN (OTP) is allowed only once everyday. Pakitingnan ang iyong inbox o subukan muli bukas (${remainingHours}h remaining).`
+            };
+        }
+    }
+    dailyOtpRequests.set(clean, { count: (record?.count || 0) + 1, lastRequestedAt: now });
+    return { allowed: true };
+}
 /**
  * Generate cryptographically unique 5-character alphanumeric referral code
  */
@@ -135,6 +159,14 @@ exports.authRouter.post('/register', async (req, res) => {
         return res.status(409).json({
             success: false,
             error: `An account with email "${cleanEmail}" already exists. Please log in instead.`
+        });
+    }
+    // Enforce strict daily OTP rate limit (1 OTP per user/email per day)
+    const otpLimitCheck = checkDailyOtpLimit(cleanEmail);
+    if (!otpLimitCheck.allowed) {
+        return res.status(429).json({
+            success: false,
+            error: otpLimitCheck.error
         });
     }
     // Generate 6-digit OTP code
@@ -353,6 +385,14 @@ exports.authRouter.post('/resend-otp', async (req, res) => {
             error: 'No active registration found for this email. Please register first.'
         });
     }
+    // Enforce strict daily OTP rate limit (1 OTP per user/email per day)
+    const otpLimitCheck = checkDailyOtpLimit(cleanEmail);
+    if (!otpLimitCheck.allowed) {
+        return res.status(429).json({
+            success: false,
+            error: otpLimitCheck.error
+        });
+    }
     const newOtp = emailService_1.EmailService.generateOtp();
     pending.otp = newOtp;
     pending.expires_at = Date.now() + 10 * 60 * 1000;
@@ -423,6 +463,14 @@ exports.authRouter.post('/forgot-password', async (req, res) => {
         return res.status(404).json({
             success: false,
             error: 'No account associated with that email address.'
+        });
+    }
+    // Enforce strict daily OTP rate limit (1 OTP per user/email per day)
+    const otpLimitCheck = checkDailyOtpLimit(cleanEmail);
+    if (!otpLimitCheck.allowed) {
+        return res.status(429).json({
+            success: false,
+            error: otpLimitCheck.error
         });
     }
     // Generate 6-digit OTP code for reset
@@ -616,6 +664,14 @@ exports.authRouter.post('/admin/request-reset', async (req, res) => {
         return res.status(403).json({
             success: false,
             error: `Access denied. Only registered administrator (${ADMIN_EMAIL}) can request admin password reset.`
+        });
+    }
+    // Enforce strict daily OTP rate limit (1 OTP per user/email per day)
+    const otpLimitCheck = checkDailyOtpLimit(targetEmail);
+    if (!otpLimitCheck.allowed) {
+        return res.status(429).json({
+            success: false,
+            error: otpLimitCheck.error
         });
     }
     // Generate 6-digit OTP code for reset

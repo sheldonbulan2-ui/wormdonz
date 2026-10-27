@@ -195,15 +195,16 @@ class DatabaseStore {
       {
         id: 'plan-start',
         tier_name: 'start',
-        display_name: 'Start Tier',
-        price_cents: 499,
+        display_name: 'Starter Plan',
+        price_cents: 149,
         billing_cycle: 'monthly',
         credit_allowance: 150,
         features: [
-          '150 Credits monthly allowance',
-          'Standard response speed',
-          'Full chat history search',
-          'Priority support'
+          '150 monthly credit pool',
+          'Standard WormDonz AI model',
+          'Standard latency & processing',
+          'Complete chat history sync',
+          'Single device access'
         ],
         is_active: true,
         updated_at: new Date().toISOString()
@@ -211,16 +212,17 @@ class DatabaseStore {
       {
         id: 'plan-basic',
         tier_name: 'basic',
-        display_name: 'Basic Tier',
-        price_cents: 1499,
+        display_name: 'Basic Plan',
+        price_cents: 399,
         billing_cycle: 'monthly',
         credit_allowance: 600,
         features: [
-          '600 Credits monthly allowance',
-          'Priority routing queue',
-          'Image & document attachments',
-          'WormDonz Fast & Vision models',
-          'Code execution with copy block'
+          '600 monthly credit pool',
+          'Priority multi-key routing queue',
+          'Image vision & document attachments',
+          'Fast & Vision multimodal models',
+          'Syntax-highlighted code exporter',
+          'Zero queue delay'
         ],
         is_active: true,
         updated_at: new Date().toISOString()
@@ -228,16 +230,16 @@ class DatabaseStore {
       {
         id: 'plan-pro',
         tier_name: 'pro',
-        display_name: 'Pro Tier',
-        price_cents: 2999,
+        display_name: 'Pro Unlimited Plan',
+        price_cents: 899,
         billing_cycle: 'monthly',
         credit_allowance: 5000,
         features: [
-          'Unlimited / 5,000 High-Compute credits',
-          'Fastest zero-queue API routing',
-          'Advanced reasoning (o3-mini / Claude 3.7)',
-          'Custom instructions & Knowledge memory',
-          'Live waveform voice mode',
+          'Unlimited compute allowance',
+          'Dedicated high-priority API allocation',
+          'Advanced reasoning (o-series / Claude 3.7)',
+          'Fast Mode + Web Search + Thinking toggles',
+          'Custom instructions & Knowledge base',
           'Unlimited projects & pinned chats'
         ],
         is_active: true,

@@ -10,15 +10,12 @@ exports.chatRouter = (0, express_1.Router)();
 function getSystemPromptForAgent(model, hasImages = false) {
     const m = (model || '').toLowerCase();
     if (hasImages) {
-        return 'You are WormDonz Vision Specialist. Thoroughly examine the attached visual input. Directly analyze the image context, layout, diagrams, or text and answer the user prompt in detailed streaming Markdown. Do not generate images.';
+        return 'You are WormDonz Vision Specialist. Thoroughly examine the visual input. Directly analyze the image context, layout, diagrams, or text and answer in crisp, streaming Markdown. Do not generate images.';
     }
-    if (m.includes('coder') || m.includes('pro')) {
-        return 'You are EvilGPT Coder Pro, an uncensored software engineering powerhouse and systems architect. Always produce robust, complete code blocks (bash, python, dart, php, rust, etc.), architecture analysis, and exact solutions tailored to the user\'s specific problem without generic preambles.';
-    }
-    if (m.includes('big') || m.includes('reasoning')) {
-        return 'You are EvilGPT BIG, the high-capacity reasoning intelligence. Deconstruct problems with exhaustive logical rigor, multi-faceted analysis, formal breakdowns, and structured clarity tailored directly to the user inquiry.';
-    }
-    return 'You are EvilGPT Latest, the ultra-fast flagship reasoning assistant. Provide direct, highly intelligent, contextual answers tailored strictly to what the user asks.';
+    return `You are WormDonz AI, a powerful, lightning-fast multi-model intelligence assistant created by dj.
+When asked "sino ka" / "who are you" / "ano ka" / "what is wormdonz" or similar questions about your identity, keep your answer simple, clean, and humble:
+"Ako si WormDonz AI, isang matalino at mabilis na AI assistant na nilikha ni dj para tulungan ka sa coding, pagsusuri, pananaliksik, at pang-araw-araw na mga gawain."
+Deliver direct, accurate, and structured answers tailored strictly to what the user asks. Never use fluff or generic disclaimers. Always format code in clean, syntax-highlighted markdown code blocks so that it can be easily copied.`;
 }
 /**
  * List all chats for a user (pinned first, then by updated_at desc)
@@ -194,11 +191,13 @@ exports.chatRouter.post('/send', async (req, res) => {
         try {
             // Execute through failover engine
             const failoverResult = await keyPoolManager_1.keyPoolManager.executeWithFailover(upstreamPayload);
-            // Stream the response tokens back via SSE
+            // High-speed natural chunk streaming: 2-3 words per 6ms for instantaneous delivery
             const tokens = failoverResult.content.split(' ');
-            for (const token of tokens) {
-                res.write(`data: ${JSON.stringify({ token: token + ' ' })}\n\n`);
-                await new Promise(r => setTimeout(r, 20));
+            const chunkSize = 2;
+            for (let i = 0; i < tokens.length; i += chunkSize) {
+                const slice = tokens.slice(i, i + chunkSize).join(' ') + ' ';
+                res.write(`data: ${JSON.stringify({ token: slice })}\n\n`);
+                await new Promise(r => setTimeout(r, 6));
             }
             // Deduct model-dependent credit cost atomically
             const remainingCredits = creditEngine_1.creditEngine.deductCredit(userId, creditCost, 'chat_deduction', activeChatId);

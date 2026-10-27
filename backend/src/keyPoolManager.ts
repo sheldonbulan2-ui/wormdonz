@@ -25,7 +25,7 @@ export class KeyPoolManager {
   public getActiveKeys(targetPool: ApiKeyPoolType = 'TEXT_POOL'): ApiKeyRecord[] {
     const now = Date.now();
 
-    return Array.from(db.apiKeys.values())
+    let matching = Array.from(db.apiKeys.values())
       .map(k => {
         // Auto-recover expired cooldowns (60s RPM cooldown or 4PM PH Time daily reset)
         if ((k.status === 'cooldown' || k.status === 'exhausted_daily') && k.cooldown_until) {
@@ -45,8 +45,30 @@ export class KeyPoolManager {
         const keyPool = k.pool_type || 'TEXT_POOL';
         const poolMatches = keyPool === targetPool;
         return poolMatches && k.status === 'active';
-      })
-      .sort((a, b) => {
+      });
+
+    // Zero-Downtime Guarantee: If zero keys are 'active' due to transient cooldowns, NEVER drop the user request.
+    // Immediately revitalize non-disabled keys in the pool so the 100M token cluster continues serving seamlessly.
+    if (matching.length === 0) {
+      const candidates = Array.from(db.apiKeys.values()).filter(k => {
+        const keyPool = k.pool_type || 'TEXT_POOL';
+        return keyPool === targetPool && k.status !== 'disabled';
+      });
+
+      if (candidates.length > 0) {
+        console.warn(`[KeyPoolManager] 🛡️ Zero-Downtime Auto-Rescue: Revitalizing ${candidates.length} keys in ${targetPool} to guarantee uninterrupted responses.`);
+        candidates.forEach(k => {
+          k.status = 'active';
+          k.cooldown_until = undefined;
+          k.last_error_message = undefined;
+          k.error_count = 0;
+          db.apiKeys.set(k.id, k);
+        });
+        matching = candidates;
+      }
+    }
+
+    return matching.sort((a, b) => {
         if (a.priority_order !== b.priority_order) {
           return a.priority_order - b.priority_order;
         }
@@ -270,18 +292,6 @@ export class KeyPoolManager {
           }),
           signal: AbortSignal.timeout(12000)
         });
-
-        // 5% token remaining quota suspension rule
-        const remTokens = Number(response.headers.get('x-ratelimit-remaining-tokens') || response.headers.get('ratelimit-remaining-tokens'));
-        const limTokens = Number(response.headers.get('x-ratelimit-limit-tokens') || response.headers.get('ratelimit-limit-tokens'));
-
-        if (limTokens > 0 && !isNaN(remTokens)) {
-          const tokenRatio = remTokens / limTokens;
-          if (tokenRatio <= 0.05) {
-            console.warn(`[KeyPoolManager] ⚠️ Key "${key.key_alias}" has <= 5% tokens remaining (${(tokenRatio * 100).toFixed(1)}%). Auto-suspending key.`);
-            this.markKeyFailure(key.id, 'exhausted', `Auto-suspended: <= 5% tokens remaining (${(tokenRatio * 100).toFixed(1)}%)`);
-          }
-        }
 
         if (!response.ok) {
           const errBody = await response.text();

@@ -25,7 +25,10 @@ import {
   X,
   Share2,
   Cpu,
-  RefreshCw
+  RefreshCw,
+  Users,
+  Award,
+  ShieldAlert
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -181,6 +184,7 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
             <a href="#features" className="hover:text-white transition duration-150">Features</a>
             <a href="#preview" className="hover:text-white transition duration-150">Live Preview</a>
             <a href="#vision" className="hover:text-white transition duration-150">Vision AI</a>
+            <a href="#referrals" className="hover:text-white transition duration-150">Invitation Rewards</a>
             <a href="#plans" className="hover:text-white transition duration-150">Subscription Plans</a>
           </nav>
 
@@ -350,20 +354,20 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
               </div>
             </div>
 
-            {/* Telegram Auth Highlight Card */}
+            {/* Email OTP Auth Highlight Card */}
             <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center gap-3.5">
-              <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
-                <MessageSquare className="w-4 h-4" />
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <ShieldCheck className="w-4 h-4" />
               </div>
               <div>
                 <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                  <span>Telegram &amp; Gmail Instant Verification</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    Dual Login
+                  <span>High-Speed Email &amp; OTP Verification</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Instant Access
                   </span>
                 </div>
                 <p className="text-[11px] text-neutral-400 mt-0.5 leading-snug">
-                  Log in seamlessly with your Telegram username or verify via Brevo high-speed OTP. No credit card required.
+                  Fast, secure signup with 6-digit OTP delivery directly to your inbox. No credit card required.
                 </p>
               </div>
             </div>
@@ -587,7 +591,145 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
         </section>
 
         {/* =========================================================================
-            5. USER SUBSCRIPTION TIERS (Free, Starter, Basic, Pro)
+            5. INVITATION & REFERRAL QUALIFICATION PROGRAM
+            ========================================================================= */}
+        <section id="referrals" className="pt-20 pb-16 border-t border-white/[0.06]">
+          <div className="text-center max-w-3xl mx-auto space-y-3 mb-14">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25">
+              🎁 Referral &amp; Invitation Program
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+              Paano Ma-qualify sa Invitation Rewards
+            </h2>
+            <p className="text-sm text-neutral-400 leading-relaxed">
+              Makatanggap ng <strong className="text-emerald-400 font-bold">+10 Bonus Credits</strong> sa bawat kaibigan o kasamahan na matagumpay mong mai-invite. Basahin ang 4 na hakbang at qualification guidelines sa ibaba.
+            </p>
+          </div>
+
+          {/* 4 Steps Visual Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+            {/* Step 1 */}
+            <div className="p-6 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl relative space-y-4 hover:border-electric-500/40 transition duration-200">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-2xl bg-electric-500/15 border border-electric-500/30 flex items-center justify-center text-electric-400 font-bold text-sm">
+                  1
+                </div>
+                <Share2 className="w-4 h-4 text-neutral-500" />
+              </div>
+              <h3 className="text-base font-bold text-white">Kunin ang Referral Code</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Buksan ang WormDonz Mobile App, pumunta sa iyong Profile, at kopyahin ang iyong natatanging <code className="text-electric-400 font-mono font-bold">WORM-XXXXX</code> invitation code o shareable link.
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div className="p-6 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl relative space-y-4 hover:border-cyan-500/40 transition duration-200">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-sm">
+                  2
+                </div>
+                <Users className="w-4 h-4 text-neutral-500" />
+              </div>
+              <h3 className="text-base font-bold text-white">I-share sa Kaibigan</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                I-send ang iyong code o link sa mga kakilala. Ilalagay nila ito sa <span className="text-white font-semibold">"Invitation Code"</span> box habang nagpaparehistro sa bagong account.
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div className="p-6 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl relative space-y-4 hover:border-amber-500/40 transition duration-200">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-sm">
+                  3
+                </div>
+                <ShieldCheck className="w-4 h-4 text-neutral-500" />
+              </div>
+              <h3 className="text-base font-bold text-white">I-verify ang 6-Digit OTP</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Kailangang mag-sign up gamit ang lehitimong personal email (bawal ang throwaway/temp mail) at kumpletuhin ang 6-digit OTP verification na ipapadala sa inbox.
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="p-6 rounded-3xl bg-[#121216]/80 border border-emerald-500/30 backdrop-blur-xl relative space-y-4 shadow-lg shadow-emerald-500/5 hover:border-emerald-500/50 transition duration-200">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-sm">
+                  4
+                </div>
+                <Award className="w-4 h-4 text-emerald-400" />
+              </div>
+              <h3 className="text-base font-bold text-white">Instant +10 Credits!</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Kapag na-verify ang bagong user sa hiwalay na cellphone, <strong className="text-emerald-400 font-bold">+10 Bonus Credits</strong> agad ang idadagdag sa inviter, at makakatanggap din ang kaibigan ng 10 Welcome Credits.
+              </p>
+            </div>
+          </div>
+
+          {/* Qualification Rules & Fraud Protection Guidelines */}
+          <div className="p-7 sm:p-8 rounded-3xl bg-[#0D0D10] border border-white/[0.08] backdrop-blur-xl space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-emerald-400" />
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                    Mga Patakaran para Ma-qualify (Qualification &amp; Anti-Farming Shield)
+                  </h4>
+                </div>
+                <p className="text-xs text-neutral-400">
+                  Upang maprotektahan ang AI compute resources at panatilihing patas ang sistema, may aktibong hardware validation ang WormDonz:
+                </p>
+              </div>
+              <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400 font-bold shrink-0">
+                Automated System Verification
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="space-y-2 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                <div className="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Hiwalay na Device</span>
+                </div>
+                <p className="text-[11px] text-neutral-400 leading-relaxed">
+                  Dapat nasa hiwalay na pisikal na cellphone o device ang inimbita (maximum 1 referral reward kada physical device ID). Bawal mag-refer sa sariling phone.
+                </p>
+              </div>
+
+              <div className="space-y-2 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                <div className="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Lehitimong Email</span>
+                </div>
+                <p className="text-[11px] text-neutral-400 leading-relaxed">
+                  Tanging totoong personal/work emails (tulad ng Gmail, Yahoo, Outlook) ang tinatanggap. Awtomatikong bina-block ang temporary at disposable fake email domains.
+                </p>
+              </div>
+
+              <div className="space-y-2 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                <div className="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Bawal ang Self-Referral</span>
+                </div>
+                <p className="text-[11px] text-neutral-400 leading-relaxed">
+                  Mahigpit na ipinagbabawal ang paggamit ng sariling referral code o paggawa ng dummy accounts para dayain ang credits. Awtomatikong madi-disqualify ang ganitong gawi.
+                </p>
+              </div>
+
+              <div className="space-y-2 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                <div className="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Network Cluster Limit</span>
+                </div>
+                <p className="text-[11px] text-neutral-400 leading-relaxed">
+                  May proteksyon laban sa bot farms (limitasyon sa bilang ng sabay-sabay na pagpaparehistro sa iisang IP network subnet) upang masiguro ang lehitimong paggamit.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================================================
+            6. USER SUBSCRIPTION TIERS (Free, Starter, Basic, Pro)
             ========================================================================= */}
         <section id="plans" className="pt-16 pb-20">
           <div className="text-center max-w-2xl mx-auto space-y-3 mb-14">
@@ -641,9 +783,9 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
             <div className="p-6 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl flex flex-col justify-between space-y-6">
               <div className="space-y-4">
                 <div className="text-sm font-bold text-neutral-300">Starter Tier</div>
-                <div className="text-3xl font-extrabold text-white">₱499 <span className="text-xs text-neutral-400 font-normal">/ month</span></div>
+                <div className="text-3xl font-extrabold text-white">₱149 <span className="text-xs text-neutral-400 font-normal">/ month</span></div>
                 <p className="text-xs text-neutral-400 leading-relaxed">
-                  For active students and enthusiasts who need steady everyday compute.
+                  Ideal for personal daily exploration & steady queries.
                 </p>
                 <div className="space-y-2 pt-2 text-xs text-neutral-300">
                   <div className="flex items-center gap-2">
@@ -652,17 +794,17 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span><strong>10 Daily</strong> Vision Image Uploads</span>
+                    <span>Standard WormDonz AI Model</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Full Chat History Search</span>
+                    <span>Complete Chat History Sync</span>
                   </div>
                 </div>
               </div>
 
               <a
-                href="https://t.me/WormDonz?text=Hi%20DJ,%20I%20want%20to%20subscribe%20to%20the%20Starter%20Tier%20(₱499)."
+                href="https://t.me/WormDonz?text=Hi%20DJ,%20I%20want%20to%20subscribe%20to%20the%20Starter%20Tier%20(₱149)."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.1] text-white text-xs font-bold text-center transition"
@@ -680,9 +822,9 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
 
               <div className="space-y-4 pt-1">
                 <div className="text-sm font-bold text-electric-400">Basic Tier</div>
-                <div className="text-3xl font-extrabold text-white">₱1,499 <span className="text-xs text-neutral-400 font-normal">/ month</span></div>
+                <div className="text-3xl font-extrabold text-white">₱399 <span className="text-xs text-neutral-400 font-normal">/ month</span></div>
                 <p className="text-xs text-neutral-300 leading-relaxed">
-                  The developer sweet spot with accelerated routing and heavy vision allowance.
+                  Maximum velocity for builders and daily engineers.
                 </p>
                 <div className="space-y-2 pt-2 text-xs text-neutral-200">
                   <div className="flex items-center gap-2">
@@ -691,21 +833,21 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-electric-400 shrink-0" />
-                    <span><strong>20 Daily</strong> Vision Image Uploads</span>
+                    <span>Priority Multi-Key Routing Queue</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-electric-400 shrink-0" />
-                    <span>Priority Routing Queue</span>
+                    <span>Fast &amp; Vision Multimodal Models</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-electric-400 shrink-0" />
-                    <span>Code Execution &amp; Copy Block</span>
+                    <span>Syntax-Highlighted Code Exporter</span>
                   </div>
                 </div>
               </div>
 
               <a
-                href="https://t.me/WormDonz?text=Hi%20DJ,%20I%20want%20to%20subscribe%20to%20the%20Basic%20Tier%20(₱1,499)."
+                href="https://t.me/WormDonz?text=Hi%20DJ,%20I%20want%20to%20subscribe%20to%20the%20Basic%20Tier%20(₱399)."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3.5 rounded-xl bg-electric-500 hover:bg-electric-600 text-white text-xs font-extrabold text-center shadow-lg shadow-electric-500/30 transition duration-150"
@@ -717,33 +859,33 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
             {/* 4. PRO TIER */}
             <div className="p-6 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl flex flex-col justify-between space-y-6">
               <div className="space-y-4">
-                <div className="text-sm font-bold text-neutral-300">Pro Tier</div>
-                <div className="text-3xl font-extrabold text-white">₱2,999 <span className="text-xs text-neutral-400 font-normal">/ month</span></div>
+                <div className="text-sm font-bold text-neutral-300">Pro Unlimited Plan</div>
+                <div className="text-3xl font-extrabold text-white">₱899 <span className="text-xs text-neutral-400 font-normal">/ month</span></div>
                 <p className="text-xs text-neutral-400 leading-relaxed">
-                  Ultimate enterprise compute with dedicated zero-queue priority routing.
+                  Enterprise compute with top-tier reasoning engines.
                 </p>
                 <div className="space-y-2 pt-2 text-xs text-neutral-300">
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span><strong>5,000 High-Compute</strong> Credits</span>
+                    <span><strong>Unlimited Compute</strong> Allowance</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span><strong>50 Daily</strong> Vision Image Uploads</span>
+                    <span>Dedicated High-Priority API Allocation</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Fastest Zero-Queue API Gateway</span>
+                    <span>Advanced Reasoning (o-series / Claude 3.7)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Unlimited Pinned Projects</span>
+                    <span>Unlimited Projects &amp; Pinned Chats</span>
                   </div>
                 </div>
               </div>
 
               <a
-                href="https://t.me/WormDonz?text=Hi%20DJ,%20I%20want%20to%20subscribe%20to%20the%20Pro%20Tier%20(₱2,999)."
+                href="https://t.me/WormDonz?text=Hi%20DJ,%20I%20want%20to%20subscribe%20to%20the%20Pro%20Tier%20(₱899)."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-electric-600 to-indigo-600 hover:from-electric-500 hover:to-indigo-500 text-white text-xs font-bold text-center shadow-md transition"

@@ -28,6 +28,7 @@ class _ProgressiveMarkdownViewState extends State<ProgressiveMarkdownView> {
 
   void _copyToClipboard(BuildContext context, String text, {String label = 'Text'}) {
     Clipboard.setData(ClipboardData(text: text));
+    HapticFeedback.lightImpact();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$label copied to clipboard'),

@@ -111,7 +111,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   border: Border.all(color: const Color(0xFF0A84FF).withOpacity(0.35)),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.between,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -487,7 +487,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
               // Quick Tools Menu
               _buildCompactMenuItem(
                 icon: Icons.card_giftcard_rounded,
-                title: 'Referral (Earn +50 Credits)',
+                title: 'Referral (Earn +10 Credits)',
                 iconColor: const Color(0xFF0A84FF),
                 onTap: _showReferralModal,
               ),

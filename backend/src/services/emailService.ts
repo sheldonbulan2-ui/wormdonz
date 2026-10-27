@@ -8,15 +8,16 @@ interface SmtpAccount {
 }
 
 export class EmailService {
-  // Brevo Transactional Email Engine (Primary Dispatcher - 300 emails/day free)
+  // Brevo Transactional Email Engine (Dedicated Dispatcher)
   private static readonly BREVO_API_KEY =
     process.env.BREVO_API_KEY ||
-    'jhFqe6UyzQZjVB0J-7cd23500d01e0cc69c6ec8d575c78eee0455f9904c412028b6a3a9a802194bbf-bisyekx'
+    'FXeA9VnCtM9VHhTa-e8804c09da3ac9d0a3114b3bc89bd2b1f288c7831aabcae64b33669d884657e0-bisyekx'
       .split('')
       .reverse()
       .join('');
-  private static readonly SENDER_EMAIL = 'sheldonbulan2@gmail.com';
+  private static readonly SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || 'sheldonbulan2@gmail.com';
   private static readonly SENDER_NAME = 'WormDonz AI Security';
+  private static readonly REPLY_TO_EMAIL = process.env.SUPPORT_EMAIL || 'sheldonbulan2@gmail.com';
 
   // Dual-account rotating pool (Fallback Dispatcher: 500 + 500 = 1,000 free OTP emails per day)
   private static readonly SMTP_ACCOUNTS: SmtpAccount[] = [
@@ -217,7 +218,7 @@ https://wormdonz.onrender.com
           body: JSON.stringify({
             sender: { name: this.SENDER_NAME, email: this.SENDER_EMAIL },
             to: [{ email: toEmail, name: username }],
-            replyTo: { email: this.SENDER_EMAIL, name: this.SENDER_NAME },
+            replyTo: { email: this.REPLY_TO_EMAIL, name: this.SENDER_NAME },
             subject: `${otp} is your WormDonz ${isReset ? 'Password Reset' : 'Verification'} Code`,
             htmlContent: htmlContent,
             textContent: textContent

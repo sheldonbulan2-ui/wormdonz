@@ -36,26 +36,26 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
   List<ChatModel> _chats = [];
   String? _activeChatId;
   List<ChatMessage> _messages = [];
-  String _currentModel = 'EvilGPT Coder Pro';
-  int _lastSentCreditCost = 2;
+  String _currentModel = 'WormDonz Fast';
+  int _lastSentCreditCost = 1;
 
   final List<Map<String, dynamic>> _availableAiModels = const [
     {
-      'id': 'evilgpt-latest',
-      'title': 'EvilGPT Latest',
-      'subtitle': 'Fastest flagship — uncensored reasoning',
+      'id': 'wormdonz-fast',
+      'title': 'WormDonz Fast',
+      'subtitle': 'Instant responses — flagship high-speed intelligence',
       'credits': 1,
     },
     {
-      'id': 'evilgpt-coder-pro',
-      'title': 'EvilGPT Coder Pro',
-      'subtitle': 'Long code generation, software architecture',
+      'id': 'wormdonz-coder-pro',
+      'title': 'WormDonz Coder Pro',
+      'subtitle': 'Full-stack software engineering & systems architecture',
       'credits': 2,
     },
     {
-      'id': 'evilgpt-big',
-      'title': 'EvilGPT BIG',
-      'subtitle': 'Flagship reasoning powerhouse, deep analysis',
+      'id': 'wormdonz-reasoning',
+      'title': 'WormDonz Reasoning',
+      'subtitle': 'Deep multi-step reasoning & complex problem solving',
       'credits': 3,
     },
   ];
@@ -913,10 +913,26 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
       createdAt: DateTime.now(),
     );
 
+    // Smart Thinking Evaluator: "Thinking it depends sa question"
+    // In Fast Mode, simple queries answer immediately without artificial thinking delay
+    final lowerP = prompt.toLowerCase();
+    final bool isComplexQuery = _isDeepThinking || 
+        attachedImages.isNotEmpty || 
+        lowerP.contains('code') || 
+        lowerP.contains('explain') || 
+        lowerP.contains('solve') || 
+        lowerP.contains('debug') || 
+        lowerP.contains('bakit') || 
+        lowerP.contains('paano') || 
+        lowerP.contains('analyze') || 
+        prompt.length > 80;
+
+    final bool shouldShowThinking = !_isFastMode || isComplexQuery;
+
     setState(() {
       _messages.add(userMsg);
       _isStreaming = true;
-      _isThinking = true;
+      _isThinking = shouldShowThinking;
       _streamingText = '';
       _userScrolledUp = false;
 
@@ -928,7 +944,9 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
       }
     });
 
-    _startThinkingAnimation();
+    if (shouldShowThinking) {
+      _startThinkingAnimation();
+    }
     _scrollToBottom(force: true);
 
     // 3. Initiate SSE / Chunked token streaming with attached images
@@ -1364,61 +1382,106 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
           // User Message Bubble (Top-Right aligned, rounded dark charcoal #1C1C1E, clean white text)
           return Align(
             alignment: Alignment.centerRight,
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 18, left: 54),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-              decoration: BoxDecoration(
-                color: userBubbleColor,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  topRight: Radius.circular(18),
-                  bottomLeft: Radius.circular(18),
-                  bottomRight: Radius.circular(4),
+            child: GestureDetector(
+              onLongPress: () {
+                if (msg.content.isNotEmpty) {
+                  Clipboard.setData(ClipboardData(text: msg.content));
+                  HapticFeedback.mediumImpact();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Question copied to clipboard'),
+                      duration: Duration(seconds: 1),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 18, left: 54),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                decoration: BoxDecoration(
+                  color: userBubbleColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(18),
+                    topRight: Radius.circular(18),
+                    bottomLeft: Radius.circular(18),
+                    bottomRight: Radius.circular(4),
+                  ),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFE5E5EA),
+                    width: 0.8,
+                  ),
                 ),
-                border: Border.all(
-                  color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFE5E5EA),
-                  width: 0.8,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Attached Vision Images preview in chat bubble
-                  if (hasImages)
-                    Padding(
-                      padding: EdgeInsets.only(bottom: msg.content.isNotEmpty ? 8 : 0),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.end,
-                        children: msg.images!.map((imgStr) {
-                          return GestureDetector(
-                            onTap: () => _showImageZoomDialog(imgStr),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Container(
-                                width: 80,
-                                height: 80,
-                                color: Colors.black26,
-                                child: _renderImageThumbnail(imgStr),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Attached Vision Images preview in chat bubble
+                    if (hasImages)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: msg.content.isNotEmpty ? 8 : 0),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.end,
+                          children: msg.images!.map((imgStr) {
+                            return GestureDetector(
+                              onTap: () => _showImageZoomDialog(imgStr),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  width: 80,
+                                  height: 80,
+                                  color: Colors.black26,
+                                  child: _renderImageThumbnail(imgStr),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    if (msg.content.isNotEmpty)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Flexible(
+                            child: SelectableText(
+                              msg.content,
+                              style: TextStyle(
+                                fontSize: 14.8,
+                                color: textColor,
+                                height: 1.45,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
-                          );
-                        }).toList(),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: msg.content));
+                              HapticFeedback.lightImpact();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Question copied to clipboard'),
+                                  duration: Duration(seconds: 1),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Icon(
+                                Icons.copy_rounded,
+                                size: 14,
+                                color: textColor.withOpacity(0.45),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  if (msg.content.isNotEmpty)
-                    Text(
-                      msg.content,
-                      style: TextStyle(
-                        fontSize: 14.8,
-                        color: textColor,
-                        height: 1.45,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -1451,6 +1514,25 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
                       fontWeight: FontWeight.w700,
                       color: textColor,
                     ),
+                  ),
+                  const Spacer(),
+                  // Direct Copy Button for Assistant Message
+                  IconButton(
+                    icon: Icon(Icons.copy_rounded, size: 15, color: mutedColor.withOpacity(0.65)),
+                    tooltip: 'Copy AI Answer',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: msg.content));
+                      HapticFeedback.lightImpact();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('AI Response copied to clipboard'),
+                          duration: Duration(seconds: 1),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
