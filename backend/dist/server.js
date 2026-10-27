@@ -7,6 +7,8 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const promise_1 = __importDefault(require("mysql2/promise"));
+const db_1 = require("./db");
 const chat_1 = require("./routes/chat");
 const redeem_1 = require("./routes/redeem");
 const user_1 = require("./routes/user");
@@ -15,6 +17,41 @@ const auth_1 = require("./routes/auth");
 const keyPoolManager_1 = require("./keyPoolManager");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4000;
+async function syncTiDBKeys() {
+    try {
+        const connection = await promise_1.default.createConnection({
+            host: 'gateway01.ap-southeast-1.prod.aws.tidbcloud.com',
+            port: 4000,
+            user: '2MMZ3bZGCHjw5Bt.root',
+            password: process.env.TIDB_PASSWORD || 'm1F0ie0iZuh278mZ',
+            database: 'wormdonz',
+            ssl: { rejectUnauthorized: false }
+        });
+        const [rows] = await connection.execute('SELECT * FROM api_keys');
+        if (Array.isArray(rows)) {
+            for (const row of rows) {
+                db_1.db.apiKeys.set(row.id, {
+                    id: row.id,
+                    key_alias: row.key_alias,
+                    provider: row.provider,
+                    encrypted_key: row.encrypted_key,
+                    status: row.status,
+                    priority_order: row.priority_order,
+                    total_requests: row.total_requests || 0,
+                    error_count: row.error_count || 0,
+                    created_at: row.created_at || new Date().toISOString(),
+                    updated_at: row.updated_at || new Date().toISOString()
+                });
+            }
+            console.log(`[Server] Synced ${rows.length} keys from TiDB Cloud database into active key pool.`);
+        }
+        await connection.end();
+    }
+    catch (err) {
+        console.warn('[Server] Note: TiDB Cloud key sync:', err.message);
+    }
+}
+syncTiDBKeys();
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
 // Request logger

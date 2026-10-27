@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
+import mysql from 'mysql2/promise';
+import { db } from './db';
 import { chatRouter } from './routes/chat';
 import { redeemRouter } from './routes/redeem';
 import { userRouter } from './routes/user';
@@ -11,6 +13,43 @@ import { keyPoolManager } from './keyPoolManager';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+
+async function syncTiDBKeys() {
+  try {
+    const connection = await mysql.createConnection({
+      host: 'gateway01.ap-southeast-1.prod.aws.tidbcloud.com',
+      port: 4000,
+      user: '2MMZ3bZGCHjw5Bt.root',
+      password: process.env.TIDB_PASSWORD || 'm1F0ie0iZuh278mZ',
+      database: 'wormdonz',
+      ssl: { rejectUnauthorized: false }
+    });
+
+    const [rows]: any = await connection.execute('SELECT * FROM api_keys');
+    if (Array.isArray(rows)) {
+      for (const row of rows) {
+        db.apiKeys.set(row.id, {
+          id: row.id,
+          key_alias: row.key_alias,
+          provider: row.provider,
+          encrypted_key: row.encrypted_key,
+          status: row.status,
+          priority_order: row.priority_order,
+          total_requests: row.total_requests || 0,
+          error_count: row.error_count || 0,
+          created_at: row.created_at || new Date().toISOString(),
+          updated_at: row.updated_at || new Date().toISOString()
+        });
+      }
+      console.log(`[Server] Synced ${rows.length} keys from TiDB Cloud database into active key pool.`);
+    }
+    await connection.end();
+  } catch (err: any) {
+    console.warn('[Server] Note: TiDB Cloud key sync:', err.message);
+  }
+}
+
+syncTiDBKeys();
 
 app.use(cors());
 app.use(express.json());

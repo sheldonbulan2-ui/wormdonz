@@ -42,5 +42,6 @@ desktop.ini
 # Local DB migration scripts
 backend/insert_openrouter_key.js
 backend/insert_dahl_key.js
+backend/insert_batch_dahl.js
 backend/fix_columns.js
 backend/test_tidb.js
