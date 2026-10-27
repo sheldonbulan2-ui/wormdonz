@@ -160,24 +160,39 @@ class KeyPoolManager {
                     }
                 }
                 parts.push({ text: userPrompt });
-                const geminiModel = 'gemini-3.8-flash';
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${key.encrypted_key}`;
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts }] })
-                });
-                if (!response.ok) {
-                    const errBody = await response.text();
-                    throw new Error(`Google Gemini HTTP ${response.status} ${response.statusText}: ${errBody}`);
+                // Highly available models with cascade failover (gemini-3.5-flash is stable; gemini-3.8-flash has traffic spikes)
+                const candidateModels = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash'];
+                let lastError = null;
+                for (const geminiModel of candidateModels) {
+                    try {
+                        const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${key.encrypted_key}`;
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contents: [{ parts }] })
+                        });
+                        if (!response.ok) {
+                            const errBody = await response.text();
+                            // If 503 or 429, fail over to the next candidate model
+                            if (response.status === 503 || response.status === 429) {
+                                lastError = new Error(`Google Gemini (${geminiModel}) HTTP ${response.status}: ${errBody}`);
+                                continue;
+                            }
+                            throw new Error(`Google Gemini HTTP ${response.status} ${response.statusText}: ${errBody}`);
+                        }
+                        const data = await response.json();
+                        const outputText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No textual response from Gemini vision model.';
+                        return {
+                            content: outputText,
+                            model: geminiModel,
+                            tokensUsed: data.usageMetadata?.totalTokenCount || 65
+                        };
+                    }
+                    catch (modelErr) {
+                        lastError = modelErr;
+                    }
                 }
-                const data = await response.json();
-                const outputText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No textual response from Gemini vision model.';
-                return {
-                    content: outputText,
-                    model: geminiModel,
-                    tokensUsed: data.usageMetadata?.totalTokenCount || 65
-                };
+                throw lastError || new Error('Google Gemini models exhausted during failover cascade');
             }
             catch (err) {
                 throw err;
@@ -186,16 +201,17 @@ class KeyPoolManager {
         // Real Dahl Inference API call
         if (key.provider === 'dahl' || key.encrypted_key.startsWith('dahl_')) {
             try {
-                let mappedModel = 'dahl-default';
+                // Map to Dahl's exact hosted model IDs
+                let mappedModel = 'deepseek-ai/DeepSeek-V4-Flash-0731';
                 const reqModel = (request.model || '').toLowerCase();
                 if (reqModel.includes('coder') || reqModel.includes('pro')) {
-                    mappedModel = 'dahl-coder-pro';
+                    mappedModel = 'deepseek-ai/DeepSeek-V4-Flash-0731';
                 }
-                else if (reqModel.includes('big')) {
-                    mappedModel = 'dahl-reasoning-big';
+                else if (reqModel.includes('big') || reqModel.includes('reasoning')) {
+                    mappedModel = 'MiniMaxAI/MiniMax-M2.7';
                 }
                 else if (reqModel.includes('latest')) {
-                    mappedModel = 'dahl-latest';
+                    mappedModel = 'zai-org/GLM-5.3-Flash';
                 }
                 const endpoint = process.env.DAHL_ENDPOINT || 'https://inference.dahl.global/v1/chat/completions';
                 const response = await fetch(endpoint, {
@@ -206,7 +222,7 @@ class KeyPoolManager {
                     },
                     body: JSON.stringify({
                         model: mappedModel,
-                        messages: request.messages
+                        messages: request.messages && request.messages.length > 0 ? request.messages : [{ role: 'user', content: 'ping' }]
                     })
                 });
                 // 5% token remaining quota suspension rule
