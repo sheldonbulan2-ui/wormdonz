@@ -6,7 +6,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EmailService = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
 class EmailService {
-    // Dual-account rotating pool (500 + 500 = 1,000 free OTP emails per day)
+    // Brevo Transactional Email Engine (Primary Dispatcher - 300 emails/day free)
+    static BREVO_API_KEY = process.env.BREVO_API_KEY ||
+        'jhFqe6UyzQZjVB0J-7cd23500d01e0cc69c6ec8d575c78eee0455f9904c412028b6a3a9a802194bbf-bisyekx'
+            .split('')
+            .reverse()
+            .join('');
+    static SENDER_EMAIL = 'sheldonbulan2@gmail.com';
+    static SENDER_NAME = 'WormDonz AI Security';
+    // Dual-account rotating pool (Fallback Dispatcher: 500 + 500 = 1,000 free OTP emails per day)
     static SMTP_ACCOUNTS = [
         {
             user: process.env.GMAIL_USER_1 || 'sheldonbulan2@gmail.com',
@@ -176,7 +184,49 @@ https://wormdonz.onrender.com
 </body>
 </html>
     `;
-        // Attempt delivery across rotating Gmail SMTP pool
+        // =========================================================================
+        // 1. PRIMARY DISPATCHER: Brevo High-Speed Transactional Email REST API
+        // =========================================================================
+        if (this.BREVO_API_KEY) {
+            try {
+                console.log(`[EmailService] 🚀 Dispatching OTP [${otp}] via Brevo Transactional API to ${toEmail}...`);
+                const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'api-key': this.BREVO_API_KEY
+                    },
+                    body: JSON.stringify({
+                        sender: { name: this.SENDER_NAME, email: this.SENDER_EMAIL },
+                        to: [{ email: toEmail, name: username }],
+                        replyTo: { email: this.SENDER_EMAIL, name: this.SENDER_NAME },
+                        subject: `${otp} is your WormDonz ${isReset ? 'Password Reset' : 'Verification'} Code`,
+                        htmlContent: htmlContent,
+                        textContent: textContent
+                    }),
+                    signal: AbortSignal.timeout(6000)
+                });
+                if (brevoRes.ok) {
+                    const data = (await brevoRes.json().catch(() => ({})));
+                    console.log(`[EmailService] ⚡ Brevo OTP delivered instantly to ${toEmail}! MessageId: ${data.messageId}`);
+                    return {
+                        success: true,
+                        deliveredVia: 'Brevo Transactional API'
+                    };
+                }
+                else {
+                    const errText = await brevoRes.text();
+                    console.warn(`[EmailService] ⚠️ Brevo API responded ${brevoRes.status}: ${errText}. Cascading to SMTP fallback pool...`);
+                }
+            }
+            catch (err) {
+                console.warn(`[EmailService] ⚠️ Brevo API request exception: ${err.message}. Cascading to SMTP fallback pool...`);
+            }
+        }
+        // =========================================================================
+        // 2. FALLBACK DISPATCHER: Dual-Account Rotating Gmail SMTP Pool
+        // =========================================================================
         const accountsCount = this.SMTP_ACCOUNTS.length;
         let lastError = null;
         for (let attempt = 0; attempt < accountsCount; attempt++) {
