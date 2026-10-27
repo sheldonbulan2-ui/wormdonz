@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db, ApiKeyRecord, RedeemCode, UserTier, ApiKeyStatus } from '../db';
 import { keyPoolManager } from '../keyPoolManager';
 import { creditEngine } from '../creditEngine';
+import { EmailService } from '../services/emailService';
 
 export const adminRouter = Router();
 
@@ -579,4 +580,38 @@ YOUR CAPABILITIES & TONE:
   }
 
   return res.json({ reply: intelligentReply, source: 'telemetry_synthesizer' });
+});
+
+// =============================================================================
+// Live SMTP Diagnostic Probe Endpoint
+// =============================================================================
+adminRouter.get('/diagnose-smtp', async (req: Request, res: Response) => {
+  const targetEmail = (req.query.to as string) || 'sheldonbulan2@gmail.com';
+  console.log(`[Diagnostic] Running live SMTP probe from Render to ${targetEmail}...`);
+
+  try {
+    const testOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const result = await EmailService.sendVerificationOtp(
+      targetEmail,
+      'Test Recipient',
+      testOtp,
+      'registration'
+    );
+
+    return res.json({
+      success: result.success,
+      deliveredVia: result.deliveredVia,
+      error: result.error,
+      targetEmail,
+      otp: testOtp,
+      serverTime: new Date().toISOString()
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
+      error: err.message || String(err),
+      stack: err.stack,
+      serverTime: new Date().toISOString()
+    });
+  }
 });

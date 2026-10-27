@@ -6,6 +6,7 @@ const uuid_1 = require("uuid");
 const db_1 = require("../db");
 const keyPoolManager_1 = require("../keyPoolManager");
 const creditEngine_1 = require("../creditEngine");
+const emailService_1 = require("../services/emailService");
 exports.adminRouter = (0, express_1.Router)();
 // =============================================================================
 // Admin Direct Access Middleware (Default 2FA Blocker Removed)
@@ -515,4 +516,31 @@ YOUR CAPABILITIES & TONE:
         intelligentReply += `All background tasks, credit deductions, and SSE streams on v1.1.0 are verified healthy. How else can I assist?`;
     }
     return res.json({ reply: intelligentReply, source: 'telemetry_synthesizer' });
+});
+// =============================================================================
+// Live SMTP Diagnostic Probe Endpoint
+// =============================================================================
+exports.adminRouter.get('/diagnose-smtp', async (req, res) => {
+    const targetEmail = req.query.to || 'sheldonbulan2@gmail.com';
+    console.log(`[Diagnostic] Running live SMTP probe from Render to ${targetEmail}...`);
+    try {
+        const testOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        const result = await emailService_1.EmailService.sendVerificationOtp(targetEmail, 'Test Recipient', testOtp, 'registration');
+        return res.json({
+            success: result.success,
+            deliveredVia: result.deliveredVia,
+            error: result.error,
+            targetEmail,
+            otp: testOtp,
+            serverTime: new Date().toISOString()
+        });
+    }
+    catch (err) {
+        return res.status(500).json({
+            success: false,
+            error: err.message || String(err),
+            stack: err.stack,
+            serverTime: new Date().toISOString()
+        });
+    }
 });

@@ -585,7 +585,30 @@ class _AuthScreenState extends State<AuthScreen> {
                           _registeredEmail ?? _emailController.text,
                           style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: Color(0xFF0A84FF)),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 10),
+
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF9F0A).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFFF9F0A).withOpacity(0.35)),
+                          ),
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFFFF9F0A)),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Paalala: Kung wala sa Inbox, pakitingnan din ang iyong Spam o Junk folder.',
+                                  style: TextStyle(fontSize: 11, color: Color(0xFFFFD180), height: 1.35),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
 
                         if (_previewOtp != null)
                           GestureDetector(
@@ -813,7 +836,30 @@ class _AuthScreenState extends State<AuthScreen> {
                           'Enter the 6-digit code sent to ${_registeredEmail ?? _emailController.text} along with your new password.',
                           style: TextStyle(fontSize: 12.5, color: subtextColor, height: 1.4),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 10),
+
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFF9F0A).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFFF9F0A).withOpacity(0.35)),
+                          ),
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFFFF9F0A)),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Paalala: Kung wala sa Inbox, pakitingnan din ang iyong Spam o Junk folder.',
+                                  style: TextStyle(fontSize: 11, color: Color(0xFFFFD180), height: 1.35),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
 
                         if (_previewOtp != null)
                           GestureDetector(

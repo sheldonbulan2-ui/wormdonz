@@ -80,6 +80,21 @@ class EmailService {
             ? 'A password reset request was initiated for your WormDonz account. Use the 6-digit security code below to set a new password.'
             : 'Welcome to WormDonz AI. Use the 6-digit verification code below to verify your account and activate your initial 10 free credits.';
         const buttonLabel = isReset ? 'Password Reset Code' : 'Email Verification Code';
+        const textContent = `
+WormDonz AI - Security Verification
+
+Hello ${username},
+
+Your 6-digit ${isReset ? 'password reset' : 'email verification'} code is: ${otp}
+
+Enter this code in the WormDonz app to proceed. This code is valid for 10 minutes.
+
+If you did not request this code, you can safely disregard this message.
+
+--
+WormDonz AI Platform
+https://wormdonz.onrender.com
+`.trim();
         const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -172,9 +187,17 @@ class EmailService {
                 const transporter = this.getTransporter(account);
                 const info = await transporter.sendMail({
                     from: `"WormDonz AI Security" <${account.user}>`,
+                    replyTo: `"WormDonz Security" <${account.user}>`,
                     to: toEmail,
                     subject: `${otp} is your WormDonz ${isReset ? 'Password Reset' : 'Verification'} Code`,
-                    html: htmlContent
+                    text: textContent,
+                    html: htmlContent,
+                    headers: {
+                        'X-Priority': '1 (Highest)',
+                        'X-MSMail-Priority': 'High',
+                        'Importance': 'High',
+                        'X-Entity-Ref-ID': `wormdonz-${Date.now()}-${otp}`
+                    }
                 });
                 console.log(`[EmailService] ✅ OTP email delivered via ${account.label}! MessageId: ${info.messageId}`);
                 // Advance round-robin pointer for next dispatch
