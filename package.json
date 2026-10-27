@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "WormDonz — AI Chat Application, Multi-Key Failover Proxy & Admin Ecosystem",
   "scripts": {
-    "build": "cd admin && npm install && npm run build && cd ../backend && npm install && npm run build",
-    "build:admin": "cd admin && npm install && npm run build",
-    "build:backend": "cd backend && npm install && npm run build",
+    "build": "cd admin && npm install --include=dev && npm run build && cd ../backend && npm install --include=dev && npm run build",
+    "build:admin": "cd admin && npm install --include=dev && npm run build",
+    "build:backend": "cd backend && npm install --include=dev && npm run build",
     "start": "cd backend && npm start",
     "migrate:tidb": "cd backend && node migrate_tidb.js"
   },

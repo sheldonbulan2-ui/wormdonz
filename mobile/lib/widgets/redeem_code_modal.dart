@@ -26,8 +26,6 @@ class _RedeemCodeModalState extends State<RedeemCodeModal> {
   String? _errorMessage;
   String? _successMessage;
 
-  final List<String> _quickCodes = ['WORMDONZ2026', 'WELCOME50', 'VIPLAUNCH'];
-
   Future<void> _handleRedeem([String? directCode]) async {
     final code = (directCode ?? _codeController.text).trim();
     if (code.isEmpty) {
@@ -166,7 +164,7 @@ class _RedeemCodeModalState extends State<RedeemCodeModal> {
                   letterSpacing: 1.2,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'e.g. WORMDONZ2026',
+                  hintText: 'ENTER CODE',
                   hintStyle: TextStyle(
                     color: mutedColor.withOpacity(0.6),
                     fontWeight: FontWeight.normal,
@@ -181,53 +179,6 @@ class _RedeemCodeModalState extends State<RedeemCodeModal> {
                   ),
                 ),
               ),
-            ),
-
-            // Quick select chips
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Text('Popular codes: ', style: TextStyle(fontSize: 12, color: mutedColor)),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _quickCodes.map((code) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(8),
-                            onTap: () {
-                              _codeController.text = code;
-                              _handleRedeem(code);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isDark ? WormDonzColors.activePillDark : Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight,
-                                  width: 0.6,
-                                ),
-                              ),
-                              child: Text(
-                                code,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: WormDonzColors.electricBlue,
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ],
             ),
 
             // Feedback alerts

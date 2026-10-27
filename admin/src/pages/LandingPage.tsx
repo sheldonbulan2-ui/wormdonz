@@ -198,28 +198,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
               </div>
             </div>
 
-            {/* Promo Codes Showcase */}
+            {/* Telegram Auth Feature Badge */}
             <div className="p-4 rounded-2xl bg-charcoal-900/80 border border-charcoal-700/60">
-              <div className="text-xs font-semibold text-neutral-400 mb-2 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Test Promo Codes (Enter in APK slide-out drawer):</span>
+              <div className="text-xs font-semibold text-neutral-300 mb-1 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                <span>Exclusively Authenticated with Telegram</span>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {['WORMDONZ2026', 'WELCOME50', 'VIPLAUNCH'].map((code) => (
-                  <button
-                    key={code}
-                    onClick={() => handleCopyCode(code)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-charcoal-800 hover:bg-charcoal-700 border border-charcoal-700 text-xs font-mono font-bold text-electric-400 transition"
-                  >
-                    <span>{code}</span>
-                    {copiedCode === code ? (
-                      <Check className="w-3 h-3 text-emerald-400" />
-                    ) : (
-                      <Copy className="w-3 h-3 text-neutral-400" />
-                    )}
-                  </button>
-                ))}
-              </div>
+              <p className="text-[11px] text-neutral-400">
+                The mobile app integrates direct Telegram Authentication. Log in with your Telegram handle to receive 10 initial welcome credits with zero email signups needed.
+              </p>
             </div>
           </div>
 
@@ -370,9 +357,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
               <div className="w-8 h-8 rounded-xl bg-electric-500/20 text-electric-400 font-bold flex items-center justify-center font-mono">
                 3
               </div>
-              <h3 className="font-bold text-white text-sm">Launch & Enjoy 10 Credits</h3>
+              <h3 className="font-bold text-white text-sm">Launch & Login via Telegram</h3>
               <p className="text-xs text-neutral-400 leading-relaxed">
-                Open WormDonz. The app connects automatically to your backend REST API. Use promo code <code className="text-electric-400 font-mono">WORMDONZ2026</code> for +50 bonus credits!
+                Open WormDonz. Authenticate instantly with your Telegram handle to claim your 10 welcome credits. All prompts route through the failover pool.
               </p>
             </div>
           </div>

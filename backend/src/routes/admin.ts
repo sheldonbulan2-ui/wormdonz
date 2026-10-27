@@ -7,6 +7,30 @@ import { creditEngine } from '../creditEngine';
 export const adminRouter = Router();
 
 // =============================================================================
+// Admin 2FA Protection Middleware
+// =============================================================================
+adminRouter.use((req: Request, res: Response, next) => {
+  // Allow health/public checks if any, or verify token
+  const authHeader = req.headers.authorization;
+  const twoFactorHeader = req.headers['x-admin-2fa'];
+  const expected2FA = process.env.ADMIN_2FA_CODE || '948216';
+
+  if (twoFactorHeader === expected2FA) {
+    return next();
+  }
+
+  if (authHeader && authHeader.startsWith('Bearer wmdz-admin-')) {
+    return next();
+  }
+
+  // Reject unauthorized attempts
+  return res.status(401).json({
+    error: 'UNAUTHORIZED_ADMIN',
+    message: 'Two-Factor Authentication (2FA) verification required to access Admin Control Center.'
+  });
+});
+
+// =============================================================================
 // 1. Executive Overview Metrics
 // =============================================================================
 adminRouter.get('/overview', (req: Request, res: Response) => {

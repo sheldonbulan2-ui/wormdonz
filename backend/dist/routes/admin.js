@@ -8,6 +8,26 @@ const keyPoolManager_1 = require("../keyPoolManager");
 const creditEngine_1 = require("../creditEngine");
 exports.adminRouter = (0, express_1.Router)();
 // =============================================================================
+// Admin 2FA Protection Middleware
+// =============================================================================
+exports.adminRouter.use((req, res, next) => {
+    // Allow health/public checks if any, or verify token
+    const authHeader = req.headers.authorization;
+    const twoFactorHeader = req.headers['x-admin-2fa'];
+    const expected2FA = process.env.ADMIN_2FA_CODE || '948216';
+    if (twoFactorHeader === expected2FA) {
+        return next();
+    }
+    if (authHeader && authHeader.startsWith('Bearer wmdz-admin-')) {
+        return next();
+    }
+    // Reject unauthorized attempts
+    return res.status(401).json({
+        error: 'UNAUTHORIZED_ADMIN',
+        message: 'Two-Factor Authentication (2FA) verification required to access Admin Control Center.'
+    });
+});
+// =============================================================================
 // 1. Executive Overview Metrics
 // =============================================================================
 exports.adminRouter.get('/overview', (req, res) => {

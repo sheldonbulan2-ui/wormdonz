@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'theme/theme_provider.dart';
 import 'screens/home_chat_screen.dart';
+import 'screens/telegram_login_screen.dart';
+import 'models/models.dart';
 import 'services/api_service.dart';
 
 void main() async {
@@ -40,7 +42,51 @@ class WormDonzApp extends StatelessWidget {
       themeMode: themeProvider.themeMode,
       theme: ThemeProvider.lightTheme,
       darkTheme: ThemeProvider.darkTheme,
-      home: const HomeChatScreen(),
+      home: const AuthGate(),
+    );
+  }
+}
+
+class AuthGate extends StatefulWidget {
+  const AuthGate({Key? key}) : super(key: key);
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  late Future<UserModel?> _sessionFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _sessionFuture = ApiService.getSavedUserSession();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<UserModel?>(
+      future: _sessionFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Color(0xFF000000),
+            body: Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0A84FF)),
+              ),
+            ),
+          );
+        }
+
+        final user = snapshot.data;
+        if (user != null) {
+          return HomeChatScreen(currentUser: user);
+        }
+
+        return const TelegramLoginScreen();
+      },
     );
   }
 }

@@ -1,6 +1,8 @@
 class UserModel {
   final String id;
   final String email;
+  final String? telegramId;
+  final String? telegramUsername;
   final String displayName;
   final String? avatarUrl;
   int credits;
@@ -10,6 +12,8 @@ class UserModel {
   UserModel({
     required this.id,
     required this.email,
+    this.telegramId,
+    this.telegramUsername,
     required this.displayName,
     this.avatarUrl,
     required this.credits,
@@ -21,6 +25,8 @@ class UserModel {
     return UserModel(
       id: json['id'] ?? '',
       email: json['email'] ?? '',
+      telegramId: json['telegram_id'],
+      telegramUsername: json['telegram_username'],
       displayName: json['display_name'] ?? 'WormDonz User',
       avatarUrl: json['avatar_url'],
       credits: json['credits'] ?? 0,
@@ -32,6 +38,8 @@ class UserModel {
   Map<String, dynamic> toJson() => {
     'id': id,
     'email': email,
+    'telegram_id': telegramId,
+    'telegram_username': telegramUsername,
     'display_name': displayName,
     'avatar_url': avatarUrl,
     'credits': credits,

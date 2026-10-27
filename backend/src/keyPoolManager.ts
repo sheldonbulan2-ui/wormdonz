@@ -130,8 +130,51 @@ export class KeyPoolManager {
       throw new Error(`HTTP 402 Payment Required: Upstream ${key.provider} quota exhausted for key ${key.key_alias}`);
     }
 
+    // Real OpenRouter API call
+    if (key.provider === 'openrouter' || key.encrypted_key.startsWith('sk-or-')) {
+      try {
+        let mappedModel = 'meta-llama/llama-3.3-70b-instruct';
+        const reqModel = (request.model || '').toLowerCase();
+        if (reqModel.includes('coder') || reqModel.includes('pro')) {
+          mappedModel = 'qwen/qwen-2.5-coder-32b-instruct';
+        } else if (reqModel.includes('big')) {
+          mappedModel = 'deepseek/deepseek-chat';
+        } else if (reqModel.includes('latest')) {
+          mappedModel = 'meta-llama/llama-3.3-70b-instruct';
+        }
+
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${key.encrypted_key}`,
+            'HTTP-Referer': 'https://wormdonz.ai',
+            'X-Title': 'WormDonz AI'
+          },
+          body: JSON.stringify({
+            model: mappedModel,
+            messages: request.messages
+          })
+        });
+
+        if (!response.ok) {
+          const errBody = await response.text();
+          throw new Error(`OpenRouter HTTP ${response.status} ${response.statusText}: ${errBody}`);
+        }
+
+        const data = await response.json();
+        return {
+          content: data.choices?.[0]?.message?.content || 'No response returned from model.',
+          model: data.model || mappedModel,
+          tokensUsed: data.usage?.total_tokens || 40
+        };
+      } catch (err: any) {
+        throw err;
+      }
+    }
+
     // Real OpenAI API call if user provided real sk-... key
-    if (key.encrypted_key.startsWith('sk-') && !key.encrypted_key.includes('vault') && !key.encrypted_key.includes('fallback') && !key.encrypted_key.includes('cluster')) {
+    if (key.encrypted_key.startsWith('sk-') && !key.encrypted_key.startsWith('sk-or-') && !key.encrypted_key.includes('vault') && !key.encrypted_key.includes('fallback') && !key.encrypted_key.includes('cluster')) {
       try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',

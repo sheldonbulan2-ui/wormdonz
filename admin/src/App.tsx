@@ -7,25 +7,28 @@ import { RedeemCodesPage } from './pages/RedeemCodesPage';
 import { UsersPage } from './pages/UsersPage';
 import { PlansConfiguratorPage } from './pages/PlansConfiguratorPage';
 import { LandingPage } from './pages/LandingPage';
+import { Admin2FAGate } from './components/Admin2FAGate';
 import { adminApi } from './api';
 import { OverviewMetrics, ApiKeyItem, RedeemCodeItem, UserItem, SubscriptionPlanItem } from './types';
 
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState('overview');
+  const [currentTab, setCurrentTab] = useState('landing');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [is2FAVerified, setIs2FAVerified] = useState(() => adminApi.isAuthenticated());
+  const [show2FAModal, setShow2FAModal] = useState(false);
 
   const [metrics, setMetrics] = useState<OverviewMetrics>({
-    totalUsers: 4,
-    activeKeysCount: 3,
-    exhaustedKeysCount: 1,
-    rateLimitedKeysCount: 1,
+    totalUsers: 0,
+    activeKeysCount: 0,
+    exhaustedKeysCount: 0,
+    rateLimitedKeysCount: 0,
     disabledKeysCount: 0,
-    totalKeysCount: 5,
-    totalCreditsInSystem: 5560,
-    totalRequestsServed: 10907,
-    mrrUsd: '49.97',
-    activePromoCodes: 3,
-    totalRedemptions: 174,
+    totalKeysCount: 0,
+    totalCreditsInSystem: 0,
+    totalRequestsServed: 0,
+    mrrUsd: '0.00',
+    activePromoCodes: 0,
+    totalRedemptions: 0,
   });
 
   const [keys, setKeys] = useState<ApiKeyItem[]>([]);
@@ -57,8 +60,31 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
+    if (is2FAVerified) {
+      loadAllData();
+    }
+  }, [is2FAVerified]);
+
+  const handleSelectTab = (tab: string) => {
+    if (tab === 'landing') {
+      setCurrentTab('landing');
+      return;
+    }
+
+    if (!is2FAVerified) {
+      setShow2FAModal(true);
+      return;
+    }
+
+    setCurrentTab(tab);
+  };
+
+  const handle2FASuccess = () => {
+    setIs2FAVerified(true);
+    setShow2FAModal(false);
+    setCurrentTab('overview');
     loadAllData();
-  }, []);
+  };
 
   const getPageTitle = () => {
     switch (currentTab) {
@@ -85,17 +111,37 @@ export const App: React.FC = () => {
     return (
       <div className="relative">
         <LandingPage
-          onEnterDashboard={() => setCurrentTab('overview')}
+          onEnterDashboard={() => {
+            if (is2FAVerified) {
+              setCurrentTab('overview');
+            } else {
+              setShow2FAModal(true);
+            }
+          }}
           activeKeysCount={metrics.activeKeysCount}
         />
-        {/* Floating Quick Switch to Admin */}
+
+        {/* 2FA Protected Admin Switcher */}
         <button
-          onClick={() => setCurrentTab('overview')}
-          className="fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-full bg-charcoal-800 hover:bg-charcoal-700 border border-charcoal-600 text-xs font-semibold text-white shadow-2xl flex items-center gap-2 transition"
+          onClick={() => {
+            if (is2FAVerified) {
+              setCurrentTab('overview');
+            } else {
+              setShow2FAModal(true);
+            }
+          }}
+          className="fixed bottom-6 right-6 z-40 px-4 py-2.5 rounded-full bg-charcoal-800 hover:bg-charcoal-700 border border-charcoal-600 text-xs font-semibold text-white shadow-2xl flex items-center gap-2 transition"
         >
-          <span>Admin Control Center</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Admin Control Center (2FA Protected)</span>
+          <span className={`w-2 h-2 rounded-full ${is2FAVerified ? 'bg-emerald-500' : 'bg-amber-400 animate-pulse'}`} />
         </button>
+
+        {show2FAModal && (
+          <Admin2FAGate
+            onSuccess={handle2FASuccess}
+            onCancel={() => setShow2FAModal(false)}
+          />
+        )}
       </div>
     );
   }
@@ -105,7 +151,7 @@ export const App: React.FC = () => {
       {/* Navigation Sidebar */}
       <Sidebar
         currentTab={currentTab}
-        onSelectTab={setCurrentTab}
+        onSelectTab={handleSelectTab}
         activeKeysCount={metrics.activeKeysCount}
         exhaustedKeysCount={metrics.exhaustedKeysCount}
       />
@@ -121,7 +167,7 @@ export const App: React.FC = () => {
 
         <main className="flex-1 overflow-y-auto p-8 max-w-7xl w-full mx-auto">
           {currentTab === 'overview' && (
-            <OverviewPage metrics={metrics} onNavigate={setCurrentTab} />
+            <OverviewPage metrics={metrics} onNavigate={handleSelectTab} />
           )}
           {currentTab === 'keys' && (
             <ApiKeyPoolPage keys={keys} onRefresh={loadAllData} />
@@ -137,6 +183,13 @@ export const App: React.FC = () => {
           )}
         </main>
       </div>
+
+      {show2FAModal && (
+        <Admin2FAGate
+          onSuccess={handle2FASuccess}
+          onCancel={() => setShow2FAModal(false)}
+        />
+      )}
     </div>
   );
 };

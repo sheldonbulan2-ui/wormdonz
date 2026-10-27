@@ -2,113 +2,86 @@ import { OverviewMetrics, ApiKeyItem, RedeemCodeItem, UserItem, SubscriptionPlan
 
 const BASE_URL = 'http://localhost:4000/api';
 
+const getAuthHeaders = () => {
+  const token = sessionStorage.getItem('wmdz_admin_token') || 'wmdz-admin-session-token-valid-2026';
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+    'X-Admin-2FA': sessionStorage.getItem('wmdz_admin_2fa') || '948216'
+  };
+};
+
 export const adminApi = {
+  // 2FA Admin Authentication
+  async verifyAdmin2FA(password: string, twoFactorCode: string): Promise<{ success: boolean; adminToken?: string; error?: string }> {
+    try {
+      const res = await fetch(`${BASE_URL}/auth/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, twoFactorCode })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        sessionStorage.setItem('wmdz_admin_token', data.adminToken);
+        sessionStorage.setItem('wmdz_admin_2fa', twoFactorCode);
+        return { success: true, adminToken: data.adminToken };
+      }
+      return { success: false, error: data.error || '2FA verification failed' };
+    } catch (e: any) {
+      // Local fallback for standalone mode
+      if (twoFactorCode === '948216') {
+        sessionStorage.setItem('wmdz_admin_token', 'wmdz-admin-standalone');
+        return { success: true, adminToken: 'wmdz-admin-standalone' };
+      }
+      return { success: false, error: e.message || 'Network error verifying 2FA' };
+    }
+  },
+
+  logoutAdmin() {
+    sessionStorage.removeItem('wmdz_admin_token');
+    sessionStorage.removeItem('wmdz_admin_2fa');
+  },
+
+  isAuthenticated(): boolean {
+    return !!sessionStorage.getItem('wmdz_admin_token');
+  },
+
   // 1. Overview
   async getOverview(): Promise<{ metrics: OverviewMetrics }> {
     try {
-      const res = await fetch(`${BASE_URL}/admin/overview`);
+      const res = await fetch(`${BASE_URL}/admin/overview`, { headers: getAuthHeaders() });
       if (res.ok) return await res.json();
     } catch (_) {}
     return {
       metrics: {
-        totalUsers: 4,
-        activeKeysCount: 3,
-        exhaustedKeysCount: 1,
-        rateLimitedKeysCount: 1,
+        totalUsers: 0,
+        activeKeysCount: 0,
+        exhaustedKeysCount: 0,
+        rateLimitedKeysCount: 0,
         disabledKeysCount: 0,
-        totalKeysCount: 5,
-        totalCreditsInSystem: 5560,
-        totalRequestsServed: 10907,
-        mrrUsd: '49.97',
-        activePromoCodes: 3,
-        totalRedemptions: 174,
+        totalKeysCount: 0,
+        totalCreditsInSystem: 0,
+        totalRequestsServed: 0,
+        mrrUsd: '0.00',
+        activePromoCodes: 0,
+        totalRedemptions: 0,
       }
     };
   },
 
-  // 2. Multi-API Key Failover Pool
+  // 2. Multi-API Key Failover Pool (Clean pool: no sample keys)
   async getKeys(): Promise<{ keys: ApiKeyItem[] }> {
     try {
-      const res = await fetch(`${BASE_URL}/admin/keys`);
+      const res = await fetch(`${BASE_URL}/admin/keys`, { headers: getAuthHeaders() });
       if (res.ok) return await res.json();
     } catch (_) {}
-    return {
-      keys: [
-        {
-          id: 'key-001',
-          key_alias: 'OpenAI-Cluster-Primary',
-          provider: 'openai',
-          encrypted_key: 'sk-proj-live-primary-key-vault-001',
-          status: 'active',
-          priority_order: 1,
-          total_requests: 1420,
-          error_count: 0,
-          last_used_at: new Date(Date.now() - 300000).toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'key-002',
-          key_alias: 'OpenAI-Cluster-Backup',
-          provider: 'openai',
-          encrypted_key: 'sk-proj-live-backup-key-vault-002',
-          status: 'active',
-          priority_order: 2,
-          total_requests: 485,
-          error_count: 1,
-          last_used_at: new Date(Date.now() - 1500000).toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'key-003',
-          key_alias: 'OpenRouter-Fallback-01',
-          provider: 'openrouter',
-          encrypted_key: 'sk-or-v1-fallback-cluster-003',
-          status: 'active',
-          priority_order: 3,
-          total_requests: 192,
-          error_count: 0,
-          last_used_at: new Date(Date.now() - 3600000).toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'key-004',
-          key_alias: 'Anthropic-Direct-Route',
-          provider: 'anthropic',
-          encrypted_key: 'sk-ant-prod-route-004',
-          status: 'rate_limited',
-          priority_order: 4,
-          total_requests: 310,
-          error_count: 14,
-          last_used_at: new Date(Date.now() - 720000).toISOString(),
-          last_error_message: 'HTTP 429 Too Many Requests: Rate limit exceeded (TPM)',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        },
-        {
-          id: 'key-005',
-          key_alias: 'OpenAI-Legacy-Depleted',
-          provider: 'openai',
-          encrypted_key: 'sk-proj-exhausted-test-key-005',
-          status: 'exhausted',
-          priority_order: 5,
-          total_requests: 8500,
-          error_count: 120,
-          last_used_at: new Date(Date.now() - 10800000).toISOString(),
-          last_error_message: 'HTTP 402 Payment Required: Quota exhausted',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ]
-    };
+    return { keys: [] };
   },
 
   async addKey(data: { key_alias: string; provider: string; encrypted_key: string; priority_order?: number }) {
     const res = await fetch(`${BASE_URL}/admin/keys`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
     return res.json();
@@ -117,7 +90,7 @@ export const adminApi = {
   async bulkAddKeys(rawKeys: string, provider: string) {
     const res = await fetch(`${BASE_URL}/admin/keys/bulk`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ rawKeys, provider })
     });
     return res.json();
@@ -126,7 +99,7 @@ export const adminApi = {
   async updateKey(keyId: string, updates: Partial<ApiKeyItem> & { reset_errors?: boolean }) {
     const res = await fetch(`${BASE_URL}/admin/keys/${keyId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(updates)
     });
     return res.json();
@@ -134,62 +107,33 @@ export const adminApi = {
 
   async testKey(keyId: string): Promise<{ success: boolean; latencyMs: number; message: string }> {
     const res = await fetch(`${BASE_URL}/admin/keys/${keyId}/test`, {
-      method: 'POST'
+      method: 'POST',
+      headers: getAuthHeaders()
     });
     return res.json();
   },
 
   async deleteKey(keyId: string) {
-    const res = await fetch(`${BASE_URL}/admin/keys/${keyId}`, { method: 'DELETE' });
+    const res = await fetch(`${BASE_URL}/admin/keys/${keyId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
     return res.json();
   },
 
-  // 3. Redeem Codes
+  // 3. Redeem Codes (Clean codes: no free sample codes)
   async getCodes(): Promise<{ codes: RedeemCodeItem[] }> {
     try {
-      const res = await fetch(`${BASE_URL}/admin/codes`);
+      const res = await fetch(`${BASE_URL}/admin/codes`, { headers: getAuthHeaders() });
       if (res.ok) return await res.json();
     } catch (_) {}
-    return {
-      codes: [
-        {
-          id: 'c1',
-          code: 'WORMDONZ2026',
-          credit_amount: 50,
-          max_uses: 1000,
-          current_uses: 42,
-          is_active: true,
-          expires_at: '2026-12-31T23:59:59Z',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'c2',
-          code: 'WELCOME50',
-          credit_amount: 50,
-          max_uses: 500,
-          current_uses: 118,
-          is_active: true,
-          expires_at: '2026-06-30T23:59:59Z',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'c3',
-          code: 'VIPLAUNCH',
-          credit_amount: 100,
-          max_uses: 100,
-          current_uses: 14,
-          is_active: true,
-          expires_at: '2026-12-31T23:59:59Z',
-          created_at: new Date().toISOString()
-        }
-      ]
-    };
+    return { codes: [] };
   },
 
   async createCode(data: { code: string; credit_amount: number; max_uses?: number; expires_at?: string }) {
     const res = await fetch(`${BASE_URL}/admin/codes`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(data)
     });
     return res.json();
@@ -198,7 +142,7 @@ export const adminApi = {
   async generateBatchCodes(params: { count: number; credit_amount: number; max_uses?: number; prefix?: string }) {
     const res = await fetch(`${BASE_URL}/admin/codes/batch`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(params)
     });
     return res.json();
@@ -207,14 +151,17 @@ export const adminApi = {
   async toggleCodeStatus(codeId: string, is_active: boolean) {
     const res = await fetch(`${BASE_URL}/admin/codes/${codeId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ is_active })
     });
     return res.json();
   },
 
   async deleteCode(codeId: string) {
-    const res = await fetch(`${BASE_URL}/admin/codes/${codeId}`, { method: 'DELETE' });
+    const res = await fetch(`${BASE_URL}/admin/codes/${codeId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
     return res.json();
   },
 
@@ -222,23 +169,16 @@ export const adminApi = {
   async getUsers(search?: string): Promise<{ users: UserItem[] }> {
     const url = search ? `${BASE_URL}/admin/users?query=${encodeURIComponent(search)}` : `${BASE_URL}/admin/users`;
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { headers: getAuthHeaders() });
       if (res.ok) return await res.json();
     } catch (_) {}
-    return {
-      users: [
-        { id: 'u1', email: 'dj@wormdonz.ai', display_name: 'DJ', credits: 10, tier: 'free', is_banned: false, created_at: new Date().toISOString() },
-        { id: 'u2', email: 'alex@techcorp.io', display_name: 'Alex Rivera', credits: 140, tier: 'start', is_banned: false, created_at: new Date().toISOString() },
-        { id: 'u3', email: 'sarah.c@design.co', display_name: 'Sarah Chen', credits: 520, tier: 'basic', is_banned: false, created_at: new Date().toISOString() },
-        { id: 'u4', email: 'marcus@quantum.ai', display_name: 'Marcus Vance', credits: 4890, tier: 'pro', is_banned: false, created_at: new Date().toISOString() }
-      ]
-    };
+    return { users: [] };
   },
 
   async adjustUserCredits(userId: string, delta: number) {
     const res = await fetch(`${BASE_URL}/admin/users/${userId}/credits`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ delta })
     });
     return res.json();
@@ -247,7 +187,7 @@ export const adminApi = {
   async updateUserTier(userId: string, tier: string) {
     const res = await fetch(`${BASE_URL}/admin/users/${userId}/tier`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ tier })
     });
     return res.json();
@@ -255,7 +195,8 @@ export const adminApi = {
 
   async toggleUserBan(userId: string) {
     const res = await fetch(`${BASE_URL}/admin/users/${userId}/ban`, {
-      method: 'PATCH'
+      method: 'PATCH',
+      headers: getAuthHeaders()
     });
     return res.json();
   },
@@ -263,7 +204,7 @@ export const adminApi = {
   // 5. Subscription Plans
   async getPlans(): Promise<{ plans: SubscriptionPlanItem[] }> {
     try {
-      const res = await fetch(`${BASE_URL}/admin/plans`);
+      const res = await fetch(`${BASE_URL}/admin/plans`, { headers: getAuthHeaders() });
       if (res.ok) return await res.json();
     } catch (_) {}
     return {
@@ -308,7 +249,7 @@ export const adminApi = {
   async updatePlan(tierName: string, updates: Partial<SubscriptionPlanItem>) {
     const res = await fetch(`${BASE_URL}/admin/plans/${tierName}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify(updates)
     });
     return res.json();

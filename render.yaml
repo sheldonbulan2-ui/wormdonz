@@ -19,3 +19,7 @@ services:
         value: m1F0ie0iZuh278mZ
       - key: TIDB_DATABASE
         value: wormdonz
+      - key: ADMIN_2FA_CODE
+        value: "948216"
+      - key: ADMIN_PASSWORD
+        value: "WormDonz@Admin2026"

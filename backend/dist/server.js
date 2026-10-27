@@ -11,6 +11,7 @@ const chat_1 = require("./routes/chat");
 const redeem_1 = require("./routes/redeem");
 const user_1 = require("./routes/user");
 const admin_1 = require("./routes/admin");
+const auth_1 = require("./routes/auth");
 const keyPoolManager_1 = require("./keyPoolManager");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4000;
@@ -94,6 +95,7 @@ app.get('/api/download/apk', (req, res) => {
     res.send(Buffer.from('WormDonz Android Release APK (v1.0.0+1) - Ready for Android install.'));
 });
 // Mount Core API Routes
+app.use('/api/auth', auth_1.authRouter);
 app.use('/api/chat', chat_1.chatRouter);
 app.use('/api/redeem', redeem_1.redeemRouter);
 app.use('/api/user', user_1.userRouter);

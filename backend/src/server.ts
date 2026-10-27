@@ -6,6 +6,7 @@ import { chatRouter } from './routes/chat';
 import { redeemRouter } from './routes/redeem';
 import { userRouter } from './routes/user';
 import { adminRouter } from './routes/admin';
+import { authRouter } from './routes/auth';
 import { keyPoolManager } from './keyPoolManager';
 
 const app = express();
@@ -102,6 +103,7 @@ app.get('/api/download/apk', (req, res) => {
 });
 
 // Mount Core API Routes
+app.use('/api/auth', authRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/redeem', redeemRouter);
 app.use('/api/user', userRouter);
