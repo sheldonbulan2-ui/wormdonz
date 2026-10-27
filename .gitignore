@@ -35,8 +35,11 @@ mobile/ios/Flutter/Flutter.podspec
 Thumbs.db
 desktop.ini
 
-# Exclude large binary APK from git history (GitHub 100MB limit)
+# Exclude build APKs but track the compressed release APK (52MB < 100MB GitHub limit)
+mobile/build/
 *.apk
+!backend/public/downloads/wormdonz.apk
+!admin/dist/downloads/wormdonz.apk
 !backend/public/downloads/README.md
 
 # Local DB migration scripts
