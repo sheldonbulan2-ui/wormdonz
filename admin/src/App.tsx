@@ -7,6 +7,7 @@ import { RedeemCodesPage } from './pages/RedeemCodesPage';
 import { UsersPage } from './pages/UsersPage';
 import { PlansConfiguratorPage } from './pages/PlansConfiguratorPage';
 import { FeedbackPage } from './pages/FeedbackPage';
+import { AdminAssistantPage } from './pages/AdminAssistantPage';
 import { LandingPage } from './pages/LandingPage';
 import { Admin2FAGate } from './components/Admin2FAGate';
 import { adminApi } from './api';
@@ -94,6 +95,8 @@ export const App: React.FC = () => {
     switch (currentTab) {
       case 'landing':
         return { title: 'Mobile APK Landing & Download Hub', subtitle: 'Public landing page, live mobile emulator preview, and APK binary downloads' };
+      case 'assistant':
+        return { title: 'Executive AI Copilot', subtitle: 'Real-time telemetry monitoring, proactive platform reminders, and autonomous management' };
       case 'overview':
         return { title: 'Executive Overview', subtitle: 'Global usage, credit consumption, and multi-key failover metrics' };
       case 'keys':
@@ -172,6 +175,9 @@ export const App: React.FC = () => {
         />
 
         <main className="flex-1 overflow-y-auto p-8 max-w-7xl w-full mx-auto">
+          {currentTab === 'assistant' && (
+            <AdminAssistantPage metrics={metrics} feedback={feedback} keys={keys} onNavigate={handleSelectTab} />
+          )}
           {currentTab === 'overview' && (
             <OverviewPage metrics={metrics} onNavigate={handleSelectTab} />
           )}

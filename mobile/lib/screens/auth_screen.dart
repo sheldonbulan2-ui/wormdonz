@@ -10,7 +10,7 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-enum AuthMode { register, verifyOtp, login, telegram }
+enum AuthMode { register, verifyOtp, login, forgotPassword, resetPassword, telegram }
 
 class _AuthScreenState extends State<AuthScreen> {
   AuthMode _mode = AuthMode.register;
@@ -209,6 +209,95 @@ class _AuthScreenState extends State<AuthScreen> {
         password: password,
       );
       if (!mounted) return;
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => HomeChatScreen(currentUser: user)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _errorMessage = e.toString().replaceAll('Exception:', '').trim());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleForgotPassword() async {
+    final email = _emailController.text.trim().toLowerCase();
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() => _errorMessage = 'Please enter your registered email address.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _successMessage = null;
+    });
+
+    try {
+      final res = await ApiService.requestPasswordReset(email: email);
+      if (!mounted) return;
+      setState(() {
+        _mode = AuthMode.resetPassword;
+        _registeredEmail = email;
+        _previewOtp = res['previewOtp'];
+        _successMessage = res['message'] ?? 'Password reset code sent to $email';
+        _otpController.clear();
+        _passwordController.clear();
+        _confirmPassController.clear();
+      });
+      _startCountdown();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _errorMessage = e.toString().replaceAll('Exception:', '').trim());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleResetPassword() async {
+    final email = _registeredEmail ?? _emailController.text.trim().toLowerCase();
+    final otp = _otpController.text.trim();
+    final newPass = _passwordController.text.trim();
+    final confirmPass = _confirmPassController.text.trim();
+
+    if (otp.length < 6) {
+      setState(() => _errorMessage = 'Please enter the 6-digit verification code.');
+      return;
+    }
+
+    if (newPass.length < 6) {
+      setState(() => _errorMessage = 'New password must be at least 6 characters.');
+      return;
+    }
+
+    if (newPass != confirmPass) {
+      setState(() => _errorMessage = 'Passwords do not match.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final user = await ApiService.resetPassword(
+        email: email,
+        otp: otp,
+        newPassword: newPass,
+      );
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Color(0xFF00F5A0),
+          content: Text(
+            '🎉 Password reset successfully! Welcome back.',
+            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => HomeChatScreen(currentUser: user)),
@@ -603,7 +692,29 @@ class _AuthScreenState extends State<AuthScreen> {
                             onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                           ),
                         ),
-                        const SizedBox(height: 20),
+
+                        // Forgot Password Link
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _mode = AuthMode.forgotPassword;
+                                _errorMessage = null;
+                                _successMessage = null;
+                              });
+                            },
+                            child: const Text(
+                              'Forgot Password?',
+                              style: TextStyle(
+                                color: Color(0xFF0A84FF),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
 
                         ElevatedButton(
                           onPressed: _isLoading ? null : _handleLogin,
@@ -624,6 +735,167 @@ class _AuthScreenState extends State<AuthScreen> {
                                   'Log In to WormDonz',
                                   style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                                 ),
+                        ),
+                      ],
+
+                      // 4. FORGOT PASSWORD VIEW (Step 1: Enter email)
+                      if (_mode == AuthMode.forgotPassword) ...[
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () => setState(() => _mode = AuthMode.login),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Recover Password',
+                              style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Enter your registered email address and we will dispatch a 6-digit password reset code.',
+                          style: TextStyle(fontSize: 12.5, color: subtextColor, height: 1.4),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildInputField(
+                          controller: _emailController,
+                          label: 'Registered Gmail / Email',
+                          hint: 'name@gmail.com',
+                          icon: Icons.email_outlined,
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _handleForgotPassword,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0A84FF),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text(
+                                  'Send Reset Code',
+                                  style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                                ),
+                        ),
+                      ],
+
+                      // 5. RESET PASSWORD VIEW (Step 2: Enter OTP + New Password)
+                      if (_mode == AuthMode.resetPassword) ...[
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () => setState(() => _mode = AuthMode.forgotPassword),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Set New Password',
+                              style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Enter the 6-digit code sent to ${_registeredEmail ?? _emailController.text} along with your new password.',
+                          style: TextStyle(fontSize: 12.5, color: subtextColor, height: 1.4),
+                        ),
+                        const SizedBox(height: 14),
+
+                        if (_previewOtp != null)
+                          GestureDetector(
+                            onTap: () {
+                              _otpController.text = _previewOtp!;
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF00F5A0).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFF00F5A0).withOpacity(0.3)),
+                              ),
+                              child: Text(
+                                'Tap to auto-fill code: $_previewOtp',
+                                style: const TextStyle(color: Color(0xFF00F5A0), fontSize: 11.5, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+
+                        _buildInputField(
+                          controller: _otpController,
+                          label: '6-Digit Reset Code',
+                          hint: '••••••',
+                          icon: Icons.pin_outlined,
+                          keyboardType: TextInputType.number,
+                          maxLength: 6,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildInputField(
+                          controller: _passwordController,
+                          label: 'New Password',
+                          hint: 'Minimum 6 characters',
+                          icon: Icons.lock_outline_rounded,
+                          obscureText: _obscurePassword,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildInputField(
+                          controller: _confirmPassController,
+                          label: 'Confirm New Password',
+                          hint: 'Re-enter your new password',
+                          icon: Icons.lock_outline_rounded,
+                          obscureText: _obscurePassword,
+                        ),
+                        const SizedBox(height: 16),
+
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _handleResetPassword,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00F5A0),
+                            foregroundColor: Colors.black87,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black87),
+                                )
+                              : const Text(
+                                  'Update Password & Log In',
+                                  style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
+                                ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Resend countdown
+                        Center(
+                          child: TextButton(
+                            onPressed: _resendCountdown > 0 || _isLoading ? null : _handleForgotPassword,
+                            child: Text(
+                              _resendCountdown > 0 ? 'Resend code in ${_resendCountdown}s' : 'Resend Code',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: _resendCountdown > 0 ? Colors.grey : const Color(0xFF0A84FF),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
 

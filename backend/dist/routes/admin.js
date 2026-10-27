@@ -370,3 +370,74 @@ exports.adminRouter.post('/feedback/:id/reject', (req, res) => {
         item
     });
 });
+// =============================================================================
+// 7. Executive AI Copilot & Automated System Guardian
+// =============================================================================
+exports.adminRouter.post('/assistant/chat', async (req, res) => {
+    const { message, history = [] } = req.body;
+    if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
+    }
+    // Gather live system snapshot
+    const users = Array.from(db_1.db.users.values());
+    const keys = Array.from(db_1.db.apiKeys.values());
+    const feedback = Array.from(db_1.db.feedbackItems.values());
+    const pendingFeedback = feedback.filter(f => f.status === 'pending');
+    const activeKeys = keys.filter(k => k.status === 'active');
+    const cooldownKeys = keys.filter(k => k.status === 'cooldown');
+    const exhaustedKeys = keys.filter(k => k.status === 'exhausted' || k.status === 'exhausted_daily');
+    const codes = Array.from(db_1.db.redeemCodes.values());
+    const systemPrompt = `You are the WormDonz AI Executive Admin Copilot. You assist DJ/Admin in managing the WormDonz platform.
+Current Real-Time System Telemetry:
+- Total Registered Users: ${users.length} (${users.filter(u => u.tier === 'pro').length} Pro, ${users.filter(u => u.tier === 'basic').length} Basic, ${users.filter(u => u.tier === 'start').length} Starter, ${users.filter(u => u.tier === 'free').length} Free)
+- Active API Keys: ${activeKeys.length} / ${keys.length} (${cooldownKeys.length} on 60s RPM cooldown, ${exhaustedKeys.length} exhausted)
+- Pending Bug Reports & Feature Requests: ${pendingFeedback.length} items awaiting review
+- Active Promo Codes: ${codes.filter(c => c.is_active).length}
+- Dual Gmail SMTP Pool: Active (1,000 free transactional emails/day)
+
+Your responsibilities:
+1. Provide concise, high-impact operational insights, status summaries, and reminders to DJ.
+2. Give actionable suggestions on user growth, credit economics, API key rotation health, and bug triage.
+3. Be respectful, highly intelligent, direct, and proactive. Remind the admin when pending bug reports need review or when key pools require replenishment.`;
+    try {
+        // Attempt Gemini or active key execution via keyPoolManager
+        const activeKeyRecord = keyPoolManager_1.keyPoolManager.getActiveKeys('TEXT_POOL')[0] || keyPoolManager_1.keyPoolManager.getActiveKeys()[0];
+        if (activeKeyRecord) {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${activeKeyRecord.encrypted_key}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [
+                        { role: 'user', parts: [{ text: `${systemPrompt}\n\nUser Admin: ${message}` }] }
+                    ]
+                })
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (replyText) {
+                    return res.json({ reply: replyText, source: 'gemini' });
+                }
+            }
+        }
+    }
+    catch (err) {
+        console.warn('[AdminAssistant] Gemini proxy error, using intelligent local engine:', err.message);
+    }
+    // High-Quality Intelligent Fallback Engine with Live Telemetry
+    let fallbackReply = `Chief, here is the current operational status for WormDonz AI:\n\n` +
+        `• **Users**: **${users.length}** accounts active. Pro subscribers: ${users.filter(u => u.tier === 'pro').length}.\n` +
+        `• **API Key Health**: **${activeKeys.length}** active keys in the failover pool. (${cooldownKeys.length} in 60s cooldown).\n` +
+        `• **Pending Feedback**: **${pendingFeedback.length}** bug/feature submissions pending your review.\n\n` +
+        `💡 **Recommendation**: `;
+    if (pendingFeedback.length > 0) {
+        fallbackReply += `You have **${pendingFeedback.length} user submissions** in the Bug Reports tab. Review and award them 10 credits to encourage community engagement.`;
+    }
+    else if (activeKeys.length < 3) {
+        fallbackReply += `The active API key count is low (${activeKeys.length}). Consider adding Google AI Studio keys in the Key Pool Manager to maintain zero-queue failover resilience.`;
+    }
+    else {
+        fallbackReply += `All key pools, SMTP relays, and credit engines are operating normally at peak performance.`;
+    }
+    return res.json({ reply: fallbackReply, source: 'telemetry_agent' });
+});

@@ -262,7 +262,97 @@ exports.authRouter.post('/login', (req, res) => {
     });
 });
 /**
- * 5. Telegram Login (Preserved for seamless Telegram authentication)
+ * 5. Forgot Password: Request OTP for password reset
+ */
+exports.authRouter.post('/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ success: false, error: 'Email address is required.' });
+    }
+    const cleanEmail = String(email).trim().toLowerCase();
+    const user = Array.from(db_1.db.users.values()).find(u => u.email.toLowerCase() === cleanEmail);
+    if (!user) {
+        return res.status(404).json({
+            success: false,
+            error: 'No account associated with that email address.'
+        });
+    }
+    // Generate 6-digit OTP code for reset
+    const otp = emailService_1.EmailService.generateOtp();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    db_1.db.passwordResets.set(cleanEmail, {
+        email: cleanEmail,
+        otp,
+        expires_at: expiresAt
+    });
+    const dispatchResult = await emailService_1.EmailService.sendVerificationOtp(cleanEmail, user.display_name || user.username || 'User', otp, 'forgot_password');
+    return res.json({
+        success: true,
+        message: `Password reset code sent to ${cleanEmail}. Check your inbox.`,
+        email: cleanEmail,
+        previewOtp: dispatchResult.deliveredVia === 'fallback_preview' ? otp : undefined
+    });
+});
+/**
+ * 6. Reset Password with Verified OTP
+ */
+exports.authRouter.post('/reset-password', (req, res) => {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+        return res.status(400).json({
+            success: false,
+            error: 'Email, 6-digit OTP, and new password are required.'
+        });
+    }
+    const cleanEmail = String(email).trim().toLowerCase();
+    const cleanOtp = String(otp).trim();
+    const cleanPass = String(newPassword).trim();
+    if (cleanPass.length < 6) {
+        return res.status(400).json({
+            success: false,
+            error: 'New password must be at least 6 characters long.'
+        });
+    }
+    const resetReq = db_1.db.passwordResets.get(cleanEmail);
+    if (!resetReq) {
+        return res.status(400).json({
+            success: false,
+            error: 'No active password reset request found. Please request a new code.'
+        });
+    }
+    if (Date.now() > resetReq.expires_at) {
+        db_1.db.passwordResets.delete(cleanEmail);
+        return res.status(400).json({
+            success: false,
+            error: 'The reset code has expired. Please request a new one.'
+        });
+    }
+    if (resetReq.otp !== cleanOtp) {
+        return res.status(400).json({
+            success: false,
+            error: 'Invalid 6-digit verification code.'
+        });
+    }
+    const user = Array.from(db_1.db.users.values()).find(u => u.email.toLowerCase() === cleanEmail);
+    if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+    // Update user password
+    user.password_hash = hashPassword(cleanPass);
+    user.updated_at = new Date().toISOString();
+    db_1.db.users.set(user.id, user);
+    db_1.db.passwordResets.delete(cleanEmail);
+    console.log(`[Auth] 🔐 Password reset successfully for user: ${user.username || user.email}`);
+    const safeUser = { ...user };
+    delete safeUser.password_hash;
+    return res.json({
+        success: true,
+        message: 'Password has been reset successfully! You can now sign in with your new password.',
+        user: safeUser
+    });
+});
+/**
+ * 7. Telegram Login (Preserved for seamless Telegram authentication)
  */
 exports.authRouter.post('/telegram', (req, res) => {
     const { telegramId, username, firstName, lastName, photoUrl } = req.body;

@@ -25,6 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navItems = [
     { id: 'landing', label: 'Landing Page & APK', icon: ExternalLink, badge: 'Download' },
+    { id: 'assistant', label: 'AI Executive Copilot', icon: Zap, badge: 'Smart' },
     { id: 'overview', label: 'Executive Overview', icon: LayoutDashboard },
     { 
       id: 'keys', 

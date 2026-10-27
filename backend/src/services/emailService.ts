@@ -1,9 +1,10 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { Transporter } from 'nodemailer';
 
 interface SmtpAccount {
   user: string;
   pass: string;
   label: string;
+  transporter?: Transporter;
 }
 
 export class EmailService {
@@ -24,6 +25,30 @@ export class EmailService {
   private static currentAccountIndex = 0;
 
   /**
+   * Reusable pooled transporters for ultra-fast instant dispatch
+   */
+  private static getTransporter(account: SmtpAccount): Transporter {
+    if (!account.transporter) {
+      account.transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        pool: true, // Reuse socket connections for instant high-concurrency sending
+        maxConnections: 5,
+        maxMessages: 100,
+        auth: {
+          user: account.user,
+          pass: account.pass
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+    }
+    return account.transporter;
+  }
+
+  /**
    * Generates a cryptographically random 6-digit numeric OTP code
    */
   public static generateOtp(): string {
@@ -31,51 +56,94 @@ export class EmailService {
   }
 
   /**
-   * Dispatches verification OTP via rotating Gmail SMTP with instant failover
+   * Dispatches verification OTP via rotating Gmail SMTP with elegant WormDonz branding
    */
-  public static async sendVerificationOtp(toEmail: string, username: string, otp: string): Promise<{ success: boolean; deliveredVia: string; error?: string }> {
-    console.log(`[EmailService] 📧 Preparing verification OTP [${otp}] for ${username} <${toEmail}>...`);
+  public static async sendVerificationOtp(
+    toEmail: string,
+    username: string,
+    otp: string,
+    purpose: 'registration' | 'forgot_password' = 'registration'
+  ): Promise<{ success: boolean; deliveredVia: string; error?: string }> {
+    console.log(`[EmailService] 📧 Preparing ${purpose} OTP [${otp}] for ${username} <${toEmail}>...`);
+
+    const isReset = purpose === 'forgot_password';
+    const titleText = isReset ? 'Reset Your WormDonz Password' : 'Verify Your Email Address';
+    const subText = isReset
+      ? 'A password reset request was initiated for your WormDonz account. Use the 6-digit security code below to set a new password.'
+      : 'Welcome to WormDonz AI. Use the 6-digit verification code below to verify your account and activate your initial 10 free credits.';
+    const buttonLabel = isReset ? 'Password Reset Code' : 'Email Verification Code';
 
     const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>WormDonz AI Verification</title>
+  <title>WormDonz AI Security</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF;">
-  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #000000; padding: 40px 20px;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #000000; padding: 40px 15px;">
     <tr>
       <td align="center">
-        <table width="100%" max-width="500" border="0" cellspacing="0" cellpadding="0" style="max-width: 500px; background-color: #141416; border-radius: 20px; border: 1px solid #242428; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+        <!-- Container Box -->
+        <table width="100%" max-width="520" border="0" cellspacing="0" cellpadding="0" style="max-width: 520px; background-color: #0D0D0E; border-radius: 24px; border: 1px solid #222226; overflow: hidden; box-shadow: 0 16px 40px rgba(0,0,0,0.9);">
+          
+          <!-- Header with Glowing Logo -->
           <tr>
-            <td style="padding: 32px 28px; text-align: center; border-bottom: 1px solid #242428;">
-              <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; border-radius: 50%; background-color: #0A84FF; color: #ffffff; font-weight: bold; font-size: 22px; margin-bottom: 12px;">W</div>
-              <h1 style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #FFFFFF;">WormDonz AI</h1>
-              <p style="margin: 6px 0 0; font-size: 13px; color: #8E8E93;">Secure Identity & Knowledge Platform</p>
+            <td style="padding: 36px 30px 24px; text-align: center; background: radial-gradient(circle at 50% 0%, rgba(10, 132, 255, 0.15) 0%, transparent 70%); border-bottom: 1px solid #1C1C20;">
+              <table align="center" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center">
+                    <!-- WormDonz Hexagonal Emblem Logo -->
+                    <div style="width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, #0A84FF 0%, #00F5A0 100%); display: inline-block; text-align: center; line-height: 56px; font-weight: 900; font-size: 26px; color: #000000; box-shadow: 0 4px 20px rgba(10, 132, 255, 0.4);">
+                      W
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              <h1 style="margin: 14px 0 0; font-size: 22px; font-weight: 800; letter-spacing: -0.6px; color: #FFFFFF;">WormDonz AI</h1>
+              <p style="margin: 4px 0 0; font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; color: #00F5A0; font-weight: 700;">Multi-Model Intelligence Hub</p>
             </td>
           </tr>
+
+          <!-- Body Content -->
           <tr>
-            <td style="padding: 32px 28px;">
-              <h2 style="margin: 0 0 12px; font-size: 18px; font-weight: 700; color: #FFFFFF;">Verify Your Email Address</h2>
-              <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.5; color: #8E8E93;">
+            <td style="padding: 32px 30px;">
+              <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; background-color: rgba(10, 132, 255, 0.12); border: 1px solid rgba(10, 132, 255, 0.3); font-size: 11px; font-weight: 700; color: #0A84FF; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
+                ${buttonLabel}
+              </span>
+
+              <h2 style="margin: 0 0 10px; font-size: 20px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.4px;">${titleText}</h2>
+              <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.55; color: #A0A0A5;">
                 Hello <strong style="color: #FFFFFF;">${username}</strong>,<br>
-                Welcome to WormDonz AI. Use the 6-digit verification code below to verify your account and activate your initial 10 free credits.
+                ${subText}
               </p>
               
-              <div style="background-color: #1C1C1E; border: 1px solid #2C2C2E; border-radius: 14px; padding: 18px; text-align: center; margin-bottom: 24px;">
-                <span style="font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #0A84FF;">${otp}</span>
+              <!-- Clean High-Contrast OTP Card -->
+              <div style="background-color: #141416; border: 1px solid #28282C; border-radius: 16px; padding: 22px 14px; text-align: center; margin-bottom: 24px; box-shadow: inset 0 2px 6px rgba(0,0,0,0.6);">
+                <span style="font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 38px; font-weight: 900; letter-spacing: 8px; color: #00F5A0; text-shadow: 0 0 12px rgba(0, 245, 160, 0.3);">${otp}</span>
+                <p style="margin: 8px 0 0; font-size: 11px; color: #707075; letter-spacing: 0.5px;">Valid for 10 minutes • Single use only</p>
               </div>
 
-              <p style="margin: 0; font-size: 12px; line-height: 1.4; color: #636366;">
-                This OTP is valid for 10 minutes. If you did not request this verification, you can safely ignore this email.
-              </p>
+              <!-- Security Warning -->
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #111113; border-radius: 12px; border: 1px solid #202024; padding: 12px 14px; margin-bottom: 8px;">
+                <tr>
+                  <td width="24" valign="top" style="padding-right: 10px; font-size: 14px;">🔒</td>
+                  <td style="font-size: 12px; line-height: 1.45; color: #8E8E93;">
+                    Never share this OTP code with anyone. WormDonz administrators will never ask for your code or password.
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
+
+          <!-- Footer -->
           <tr>
-            <td style="padding: 18px 28px; background-color: #0D0D0E; border-top: 1px solid #242428; text-align: center;">
-              <p style="margin: 0; font-size: 11px; color: #636366;">
-                &copy; 2026 WormDonz AI. All rights reserved. Direct secure authentication dispatch.
+            <td style="padding: 20px 30px; background-color: #070708; border-top: 1px solid #1A1A1E; text-align: center;">
+              <p style="margin: 0 0 4px; font-size: 11px; color: #55555A;">
+                Sent directly via WormDonz High-Speed Cluster • <a href="https://wormdonz.onrender.com" style="color: #0A84FF; text-decoration: none;">wormdonz.onrender.com</a>
+              </p>
+              <p style="margin: 0; font-size: 10px; color: #404045;">
+                &copy; 2026 WormDonz AI Platform. All rights reserved.
               </p>
             </td>
           </tr>
@@ -96,25 +164,13 @@ export class EmailService {
       const account = this.SMTP_ACCOUNTS[accountIndex];
 
       try {
-        console.log(`[EmailService] 🔄 Attempting SMTP dispatch via ${account.label}...`);
-
-        const transporter = nodemailer.createTransport({
-          host: 'smtp.gmail.com',
-          port: 465,
-          secure: true, // SSL
-          auth: {
-            user: account.user,
-            pass: account.pass
-          },
-          tls: {
-            rejectUnauthorized: false
-          }
-        });
+        console.log(`[EmailService] 🔄 Attempting pooled SMTP dispatch via ${account.label}...`);
+        const transporter = this.getTransporter(account);
 
         const info = await transporter.sendMail({
           from: `"WormDonz AI Security" <${account.user}>`,
           to: toEmail,
-          subject: `${otp} is your WormDonz verification code`,
+          subject: `${otp} is your WormDonz ${isReset ? 'Password Reset' : 'Verification'} Code`,
           html: htmlContent
         });
 

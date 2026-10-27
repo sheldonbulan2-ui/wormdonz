@@ -164,13 +164,67 @@ class ApiService {
         Uri.parse('$baseUrl/auth/resend-otp'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email.trim().toLowerCase()}),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(res.body);
       if (res.statusCode == 200) {
         return {'success': true, 'previewOtp': data['previewOtp']};
       } else {
         throw Exception(data['error'] ?? 'Failed to resend verification code.');
+      }
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  /// Request Forgot Password OTP
+  static Future<Map<String, dynamic>> requestPasswordReset({required String email}) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email.trim().toLowerCase()}),
+      ).timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        return {
+          'success': true,
+          'message': data['message'],
+          'previewOtp': data['previewOtp']
+        };
+      } else {
+        throw Exception(data['error'] ?? 'Failed to request password reset.');
+      }
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  /// Reset Password with Verified 6-digit OTP
+  static Future<UserModel> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email.trim().toLowerCase(),
+          'otp': otp.trim(),
+          'newPassword': newPassword.trim(),
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        final user = UserModel.fromJson(data['user']);
+        await saveUserSession(user);
+        return user;
+      } else {
+        throw Exception(data['error'] ?? 'Password reset failed.');
       }
     } catch (e) {
       throw Exception(e.toString().replaceAll('Exception: ', ''));
@@ -470,7 +524,7 @@ class ApiService {
         'stream': true,
       });
 
-      final streamedResponse = await client.send(req).timeout(const Duration(seconds: 14));
+      final streamedResponse = await client.send(req).timeout(const Duration(seconds: 45));
 
       if (streamedResponse.statusCode == 403) {
         final bodyStr = await streamedResponse.stream.bytesToString();

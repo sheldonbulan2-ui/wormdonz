@@ -34,6 +34,12 @@ export interface PendingRegistration {
   expires_at: number;
 }
 
+export interface PasswordResetRequest {
+  email: string;
+  otp: string;
+  expires_at: number;
+}
+
 export interface ApiKeyRecord {
   id: string;
   key_alias: string;
@@ -138,6 +144,7 @@ class DatabaseStore {
   public subscriptionPlans: Map<UserTier, SubscriptionPlan> = new Map();
   public transactions: CreditTransaction[] = [];
   public pendingRegistrations: Map<string, PendingRegistration> = new Map();
+  public passwordResets: Map<string, PasswordResetRequest> = new Map();
   public feedbackItems: Map<string, FeedbackItem> = new Map();
 
   constructor() {
