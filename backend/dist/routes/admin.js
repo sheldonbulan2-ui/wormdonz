@@ -313,3 +313,60 @@ exports.adminRouter.put('/plans/:tierName', (req, res) => {
     db_1.db.subscriptionPlans.set(tierName, plan);
     res.json({ success: true, plan });
 });
+// =============================================================================
+// 6. Bug Reports & Feature Requests Management (with Credits Reward)
+// =============================================================================
+exports.adminRouter.get('/feedback', (req, res) => {
+    const items = Array.from(db_1.db.feedbackItems.values()).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    // Attach user information for display
+    const enrichedItems = items.map(item => {
+        const user = db_1.db.users.get(item.user_id);
+        return {
+            ...item,
+            user_email: user?.email || 'unknown',
+            user_name: user?.display_name || user?.username || 'Unknown User'
+        };
+    });
+    res.json({ feedback: enrichedItems });
+});
+exports.adminRouter.post('/feedback/:id/verify', (req, res) => {
+    const { id } = req.params;
+    const { rewardCredits = 10, adminNotes = 'Verified by Admin' } = req.body;
+    const item = db_1.db.feedbackItems.get(id);
+    if (!item)
+        return res.status(404).json({ error: 'Feedback item not found' });
+    const creditsToAdd = Number(rewardCredits) || 10;
+    item.status = 'verified';
+    item.credits_rewarded = creditsToAdd;
+    item.admin_notes = adminNotes;
+    item.updated_at = new Date().toISOString();
+    db_1.db.feedbackItems.set(id, item);
+    // Award credits to the user who submitted the report
+    const user = db_1.db.users.get(item.user_id);
+    let newBalance = user ? user.credits : 0;
+    if (user && creditsToAdd > 0) {
+        newBalance = creditEngine_1.creditEngine.adjustUserCredits(item.user_id, creditsToAdd, `Reward: ${item.type === 'bug' ? 'Bug Report' : 'Feature Request'} Verified - ${item.title}`);
+    }
+    res.json({
+        success: true,
+        message: `Feedback verified and awarded ${creditsToAdd} credits to user!`,
+        item,
+        newBalance
+    });
+});
+exports.adminRouter.post('/feedback/:id/reject', (req, res) => {
+    const { id } = req.params;
+    const { adminNotes = 'Declined by Admin' } = req.body;
+    const item = db_1.db.feedbackItems.get(id);
+    if (!item)
+        return res.status(404).json({ error: 'Feedback item not found' });
+    item.status = 'rejected';
+    item.admin_notes = adminNotes;
+    item.updated_at = new Date().toISOString();
+    db_1.db.feedbackItems.set(id, item);
+    res.json({
+        success: true,
+        message: 'Feedback item marked as rejected.',
+        item
+    });
+});

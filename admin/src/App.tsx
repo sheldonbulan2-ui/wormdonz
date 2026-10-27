@@ -6,10 +6,11 @@ import { ApiKeyPoolPage } from './pages/ApiKeyPoolPage';
 import { RedeemCodesPage } from './pages/RedeemCodesPage';
 import { UsersPage } from './pages/UsersPage';
 import { PlansConfiguratorPage } from './pages/PlansConfiguratorPage';
+import { FeedbackPage } from './pages/FeedbackPage';
 import { LandingPage } from './pages/LandingPage';
 import { Admin2FAGate } from './components/Admin2FAGate';
 import { adminApi } from './api';
-import { OverviewMetrics, ApiKeyItem, RedeemCodeItem, UserItem, SubscriptionPlanItem } from './types';
+import { OverviewMetrics, ApiKeyItem, RedeemCodeItem, UserItem, SubscriptionPlanItem, FeedbackItem } from './types';
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState('landing');
@@ -35,16 +36,18 @@ export const App: React.FC = () => {
   const [codes, setCodes] = useState<RedeemCodeItem[]>([]);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [plans, setPlans] = useState<SubscriptionPlanItem[]>([]);
+  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
 
   const loadAllData = async () => {
     setIsRefreshing(true);
     try {
-      const [overviewRes, keysRes, codesRes, usersRes, plansRes] = await Promise.all([
+      const [overviewRes, keysRes, codesRes, usersRes, plansRes, feedbackRes] = await Promise.all([
         adminApi.getOverview(),
         adminApi.getKeys(),
         adminApi.getCodes(),
         adminApi.getUsers(),
-        adminApi.getPlans()
+        adminApi.getPlans(),
+        adminApi.getFeedback()
       ]);
 
       if (overviewRes?.metrics) setMetrics(overviewRes.metrics);
@@ -52,6 +55,7 @@ export const App: React.FC = () => {
       if (codesRes?.codes) setCodes(codesRes.codes);
       if (usersRes?.users) setUsers(usersRes.users);
       if (plansRes?.plans) setPlans(plansRes.plans);
+      if (feedbackRes?.feedback) setFeedback(feedbackRes.feedback);
     } catch (e) {
       console.error('Failed to sync admin data:', e);
     } finally {
@@ -98,6 +102,8 @@ export const App: React.FC = () => {
         return { title: 'Redeem Code Engine', subtitle: 'Manage promotional vouchers, credit rewards, and single-use redemption enforcement' };
       case 'users':
         return { title: 'User & Credit Management', subtitle: 'Inspect active accounts, adjust balances, and enforce subscription tiers' };
+      case 'feedback':
+        return { title: 'Bug Reports & Feature Requests', subtitle: 'Review user submissions, verify issues, and award credits' };
       case 'plans':
         return { title: 'Subscription Tier Configurator', subtitle: 'Dynamically configure pricing, credits, and feature bullets across platforms' };
       default:
@@ -177,6 +183,9 @@ export const App: React.FC = () => {
           )}
           {currentTab === 'users' && (
             <UsersPage users={users} onRefresh={loadAllData} />
+          )}
+          {currentTab === 'feedback' && (
+            <FeedbackPage feedback={feedback} onRefresh={loadAllData} />
           )}
           {currentTab === 'plans' && (
             <PlansConfiguratorPage plans={plans} onRefresh={loadAllData} />

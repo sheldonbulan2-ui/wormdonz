@@ -67,3 +67,18 @@ export interface SubscriptionPlanItem {
   is_active: boolean;
   updated_at: string;
 }
+
+export interface FeedbackItem {
+  id: string;
+  user_id: string;
+  user_email?: string;
+  user_name?: string;
+  type: 'bug' | 'feature';
+  title: string;
+  description: string;
+  status: 'pending' | 'verified' | 'rejected';
+  credits_rewarded: number;
+  admin_notes?: string;
+  created_at: string;
+  updated_at: string;
+}

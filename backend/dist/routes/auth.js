@@ -12,6 +12,34 @@ const emailService_1 = require("../services/emailService");
 exports.authRouter = (0, express_1.Router)();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'WormDonz@Admin2026';
 const ADMIN_2FA_CODE = process.env.ADMIN_2FA_CODE || '948216';
+// Comprehensive list of disposable/temporary email provider domains
+const DISPOSABLE_EMAIL_DOMAINS = new Set([
+    'tempmail.com', 'temp-mail.org', 'tempmailo.com', '10minutemail.com', 'guerrillamail.com',
+    'guerrillamail.net', 'guerrillamail.org', 'guerrillamailblock.com', 'sharklasers.com',
+    'grr.la', 'pokemail.net', 'mailinator.com', 'yopmail.com', 'yopmail.fr', 'trashmail.com',
+    'dispostable.com', 'getairmail.com', 'mohmal.com', 'crazymailing.com', 'maildrop.cc',
+    'inboxkitten.com', 'burnermail.io', 'generator.email', 'dropmail.me', 'throwawaymail.com',
+    'fakemailgenerator.com', 'nada.ltd', 'emailondeck.com', 'mytemp.email', 'tempail.com',
+    'tempinbox.com', 'mailcatch.com', 'tmail.ws', 'tmpmail.net', 'tmpmail.org', '10mail.org',
+    'minutemailbox.com', 'tempr.email', 'discard.email', 'disposablemail.com', 'spambog.com',
+    'trashmail.net', 'trashmail.me', 'fakeinbox.com', 'harakirimail.com', 'mailnesia.com',
+    'zillamail.com', 'armyspy.com', 'cuvox.de', 'dayrep.com', 'fleckens.hu', 'gustr.com',
+    'jourrapide.com', 'rhyta.com', 'superrito.com', 'teleworm.us', 'tinemail.com'
+]);
+function isDisposableEmail(email) {
+    const parts = email.split('@');
+    if (parts.length !== 2)
+        return false;
+    const domain = parts[1].toLowerCase().trim();
+    if (DISPOSABLE_EMAIL_DOMAINS.has(domain))
+        return true;
+    // Subdomain check (e.g. *.mailinator.com)
+    for (const blocked of DISPOSABLE_EMAIL_DOMAINS) {
+        if (domain.endsWith('.' + blocked))
+            return true;
+    }
+    return false;
+}
 function hashPassword(password) {
     return crypto_1.default.createHash('sha256').update(password + 'wormdonz_salt_2026').digest('hex');
 }
@@ -39,6 +67,14 @@ exports.authRouter.post('/register', async (req, res) => {
         return res.status(400).json({
             success: false,
             error: 'Please enter a valid email address.'
+        });
+    }
+    // 100% Legit Email Protection: Block temporary/throwaway email providers
+    if (isDisposableEmail(cleanEmail)) {
+        return res.status(400).json({
+            success: false,
+            isTempMailBlocked: true,
+            error: '⚠️ Temporary/Disposable email addresses are strictly prohibited. Please use a legitimate personal or work email (e.g. @gmail.com, @yahoo.com, @outlook.com).'
         });
     }
     if (cleanPass.length < 6) {

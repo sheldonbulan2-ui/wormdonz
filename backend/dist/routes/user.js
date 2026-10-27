@@ -56,3 +56,49 @@ exports.userRouter.post('/upgrade', (req, res) => {
         user
     });
 });
+/**
+ * Submit Bug Report or Feature Request
+ */
+exports.userRouter.post('/feedback', (req, res) => {
+    const { userId, type, title, description } = req.body;
+    if (!userId || !type || !title || !description) {
+        return res.status(400).json({ error: 'userId, type (bug|feature), title, and description are required' });
+    }
+    const cleanType = type === 'feature' ? 'feature' : 'bug';
+    const cleanTitle = String(title).trim();
+    const cleanDesc = String(description).trim();
+    if (cleanTitle.length < 3 || cleanDesc.length < 5) {
+        return res.status(400).json({ error: 'Title and description must be detailed enough to review.' });
+    }
+    const user = db_1.db.users.get(userId);
+    if (!user)
+        return res.status(404).json({ error: 'User not found' });
+    const id = `fb-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const feedbackItem = {
+        id,
+        user_id: userId,
+        type: cleanType,
+        title: cleanTitle,
+        description: cleanDesc,
+        status: 'pending',
+        credits_rewarded: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    };
+    db_1.db.feedbackItems.set(id, feedbackItem);
+    res.status(201).json({
+        success: true,
+        message: 'Thank you! Your feedback has been submitted to the admin team. Once verified, you will be rewarded with credits.',
+        feedback: feedbackItem
+    });
+});
+/**
+ * Get User's submitted feedbacks
+ */
+exports.userRouter.get('/feedback/:userId', (req, res) => {
+    const { userId } = req.params;
+    const items = Array.from(db_1.db.feedbackItems.values())
+        .filter(f => f.user_id === userId)
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    res.json({ feedback: items });
+});

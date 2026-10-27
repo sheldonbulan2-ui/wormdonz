@@ -83,6 +83,11 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
   bool _userScrolledUp = false;
   String? _lastUserPrompt;
 
+  // Assistant Reasoning / Mode Feature Toggles
+  bool _isFastMode = true;     // ⚡ Fast Mode
+  bool _isWebSearch = false;   // 🌐 Web Search
+  bool _isDeepThinking = false; // 🧠 Thinking Mode
+
   @override
   void initState() {
     super.initState();
@@ -847,7 +852,26 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
     _lastSentCreditCost = requiredCredits;
 
     if (_currentUser.tier != 'pro' && _currentUser.credits < requiredCredits) {
-      _showZeroCreditSheet(requiredCredits);
+      // Auto-show Subscription Paywall directly when user has exhausted credits
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SubscriptionScreen(
+            currentUser: _currentUser,
+            onUpgraded: (user) => setState(() => _currentUser = user),
+          ),
+        ),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFFF3B30),
+          content: Text(
+            '⚠️ You have ${_currentUser.credits} credits. This request requires $requiredCredits credits. Please subscribe to continue.',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
       return;
     }
 
@@ -940,6 +964,16 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
               _showImagePaywallSheet(
                 message: event['message'] ?? 'Image upload quota limit reached.',
                 isLifetime: _currentUser.tier == 'free',
+              );
+            } else if (event['error'] == 'INSUFFICIENT_CREDITS') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SubscriptionScreen(
+                    currentUser: _currentUser,
+                    onUpgraded: (user) => setState(() => _currentUser = user),
+                  ),
+                ),
               );
             }
             _handleStreamError(event);
@@ -1542,6 +1576,56 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
               ),
             ),
 
+          // 3. Compact Mode Selector Strip: [⚡ Fast Mode]  [🌐 Web Search]  [🧠 Deep Thinking]
+          Container(
+            margin: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
+            child: Row(
+              children: [
+                _buildModePill(
+                  icon: Icons.bolt_rounded,
+                  label: 'Fast',
+                  isActive: _isFastMode,
+                  activeColor: const Color(0xFF00F5A0),
+                  onTap: () {
+                    setState(() {
+                      _isFastMode = !_isFastMode;
+                      if (_isFastMode) _isDeepThinking = false;
+                    });
+                  },
+                  isDark: isDark,
+                  surfaceColor: surfaceColor,
+                ),
+                const SizedBox(width: 8),
+                _buildModePill(
+                  icon: Icons.language_rounded,
+                  label: 'Web',
+                  isActive: _isWebSearch,
+                  activeColor: const Color(0xFF0A84FF),
+                  onTap: () {
+                    setState(() => _isWebSearch = !_isWebSearch);
+                  },
+                  isDark: isDark,
+                  surfaceColor: surfaceColor,
+                ),
+                const SizedBox(width: 8),
+                _buildModePill(
+                  icon: Icons.psychology_rounded,
+                  label: 'Thinking',
+                  isActive: _isDeepThinking,
+                  activeColor: const Color(0xFFFF9500),
+                  onTap: () {
+                    setState(() {
+                      _isDeepThinking = !_isDeepThinking;
+                      if (_isDeepThinking) _isFastMode = false;
+                    });
+                  },
+                  isDark: isDark,
+                  surfaceColor: surfaceColor,
+                ),
+              ],
+            ),
+          ),
+
           // Composer Row: [+] | [Ask WormDonz... (Mic) (Send)]
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -1618,56 +1702,30 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
                       ),
                       const SizedBox(width: 6),
 
-                      // Action Button: Rotating Red Circular Arc Spinner OR Blue Send Button (Strict Zero-Layout-Shift)
-                      SizedBox(
-                        width: 34,
-                        height: 34,
-                        child: Center(
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 180),
-                            child: _isStreaming
-                                ? Container(
-                                    key: const ValueKey('streaming_spinner'),
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF1C1C1E) : const Color(0xFFE5E5EA),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: const Color(0xFFFF3B30).withOpacity(0.35),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: const Center(
-                                      child: SizedBox(
-                                        width: 17,
-                                        height: 17,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF3B30)),
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                : GestureDetector(
-                                    key: const ValueKey('send_button'),
-                                    onTap: () => _handleSendMessage(),
-                                    child: Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: const BoxDecoration(
-                                        color: WormDonzColors.electricBlue,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.arrow_upward_rounded,
-                                          color: Colors.white,
-                                          size: 18,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
+                      // Action Button: Solid Green (#00F5A0 / Emerald) Send Button (No Red Spinning)
+                      GestureDetector(
+                        key: const ValueKey('send_button'),
+                        onTap: () => _handleSendMessage(),
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00F5A0), // Always clean green
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF00F5A0).withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.arrow_upward_rounded,
+                              color: Color(0xFF0D0D0E), // High contrast dark charcoal arrow on green
+                              size: 20,
+                            ),
                           ),
                         ),
                       ),
@@ -1678,6 +1736,53 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildModePill({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required Color activeColor,
+    required VoidCallback onTap,
+    required bool isDark,
+    required Color surfaceColor,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isActive
+              ? activeColor.withOpacity(0.16)
+              : (isDark ? const Color(0xFF1C1C1E) : const Color(0xFFE5E5EA)),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isActive ? activeColor.withOpacity(0.5) : (isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight),
+            width: isActive ? 1.0 : 0.6,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 14,
+              color: isActive ? activeColor : (isDark ? const Color(0xFF8E8E93) : const Color(0xFF636366)),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: isActive ? activeColor : (isDark ? const Color(0xFF8E8E93) : const Color(0xFF636366)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

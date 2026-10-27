@@ -80,6 +80,19 @@ class _AuthScreenState extends State<AuthScreen> {
       return;
     }
 
+    // Client-side quick check for disposable temporary email domains
+    final tempMailKeywords = [
+      'tempmail', 'temp-mail', '10minutemail', 'guerrillamail', 'sharklasers',
+      'mailinator', 'yopmail', 'trashmail', 'dispostable', 'mohmal', 'maildrop',
+      'inboxkitten', 'burnermail', 'generator.email', 'dropmail', 'throwawaymail',
+      'mytemp.email', 'tempail', 'tmpmail', 'armyspy', 'cuvox', 'dayrep', 'teleworm'
+    ];
+    final emailDomain = email.split('@').last.toLowerCase();
+    if (tempMailKeywords.any((kw) => emailDomain.contains(kw))) {
+      setState(() => _errorMessage = '⚠️ Babala: Bawal ang temporary o disposable email (temp-mail). Mangyaring gumamit ng lehitimong Gmail, Yahoo, o personal email para makatanggap ng OTP.');
+      return;
+    }
+
     if (password.length < 6) {
       setState(() => _errorMessage = 'Password must be at least 6 characters.');
       return;

@@ -12,6 +12,7 @@ class DatabaseStore {
     subscriptionPlans = new Map();
     transactions = [];
     pendingRegistrations = new Map();
+    feedbackItems = new Map();
     constructor() {
         this.seed();
     }

@@ -7,6 +7,7 @@ import '../screens/subscription_screen.dart';
 import '../screens/auth_screen.dart';
 import '../theme/theme_provider.dart';
 import 'redeem_code_modal.dart';
+import 'feedback_modal.dart';
 
 class CustomDrawer extends StatefulWidget {
   final UserModel currentUser;
@@ -440,6 +441,15 @@ class _CustomDrawerState extends State<CustomDrawer> {
                       widget.onUserUpdated(widget.currentUser);
                     },
                   );
+                },
+              ),
+              _buildCompactMenuItem(
+                icon: Icons.bug_report_outlined,
+                title: 'Bug Report & Features',
+                iconColor: const Color(0xFF0A84FF),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  FeedbackModal.show(context, userId: widget.currentUser.id);
                 },
               ),
               _buildCompactMenuItem(

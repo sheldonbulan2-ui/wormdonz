@@ -255,5 +255,32 @@ export const adminApi = {
       body: JSON.stringify(updates)
     });
     return res.json();
+  },
+
+  // 6. Feedback & Bug Reports
+  async getFeedback(): Promise<{ feedback: any[] }> {
+    try {
+      const res = await fetch(`${BASE_URL}/admin/feedback`, { headers: getAuthHeaders() });
+      if (res.ok) return await res.json();
+    } catch (_) {}
+    return { feedback: [] };
+  },
+
+  async verifyFeedback(id: string, rewardCredits: number, adminNotes?: string) {
+    const res = await fetch(`${BASE_URL}/admin/feedback/${id}/verify`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ rewardCredits, adminNotes })
+    });
+    return res.json();
+  },
+
+  async rejectFeedback(id: string, adminNotes?: string) {
+    const res = await fetch(`${BASE_URL}/admin/feedback/${id}/reject`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ adminNotes })
+    });
+    return res.json();
   }
 };

@@ -34,6 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { id: 'codes', label: 'Redeem Code Engine', icon: Gift },
     { id: 'users', label: 'User & Credit Manager', icon: Users },
+    { id: 'feedback', label: 'Bug Reports & Requests', icon: ShieldCheck },
     { id: 'plans', label: 'Tier Configurator', icon: Sliders },
   ];
 

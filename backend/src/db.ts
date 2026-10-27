@@ -114,6 +114,19 @@ export interface CreditTransaction {
   created_at: string;
 }
 
+export interface FeedbackItem {
+  id: string;
+  user_id: string;
+  type: 'bug' | 'feature';
+  title: string;
+  description: string;
+  status: 'pending' | 'verified' | 'rejected';
+  credits_rewarded: number;
+  admin_notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // In-Memory Repository with TiDB Synchronization
 class DatabaseStore {
   public users: Map<string, User> = new Map();
@@ -125,6 +138,7 @@ class DatabaseStore {
   public subscriptionPlans: Map<UserTier, SubscriptionPlan> = new Map();
   public transactions: CreditTransaction[] = [];
   public pendingRegistrations: Map<string, PendingRegistration> = new Map();
+  public feedbackItems: Map<string, FeedbackItem> = new Map();
 
   constructor() {
     this.seed();

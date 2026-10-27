@@ -750,4 +750,33 @@ class ApiService {
       await http.delete(Uri.parse('$baseUrl/chat/$chatId'));
     } catch (_) {}
   }
+
+  /// Submit Bug Report or Feature Request
+  static Future<Map<String, dynamic>> submitFeedback({
+    required String userId,
+    required String type,
+    required String title,
+    required String description,
+  }) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/user/feedback'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'userId': userId,
+          'type': type,
+          'title': title,
+          'description': description,
+        }),
+      );
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return {'success': true, 'message': data['message'] ?? 'Feedback submitted!'};
+      }
+      return {'success': false, 'error': data['error'] ?? 'Submission failed.'};
+    } catch (e) {
+      return {'success': false, 'error': 'Network error submitting feedback: $e'};
+    }
+  }
 }

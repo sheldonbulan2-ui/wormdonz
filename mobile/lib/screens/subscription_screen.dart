@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
-import '../services/api_service.dart';
 import '../theme/theme_provider.dart';
 
 class SubscriptionScreen extends StatefulWidget {
@@ -18,17 +18,16 @@ class SubscriptionScreen extends StatefulWidget {
 }
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
-  bool _isAnnual = false;
-  bool _isLoading = false;
+  final String _telegramAdminUsername = 'WormDonz';
 
   final List<Map<String, dynamic>> _tiers = [
     {
       'id': 'start',
-      'name': 'Start Tier',
-      'monthlyPrice': 4.99,
-      'annualPrice': 3.99,
+      'name': 'Starter Plan',
+      'pricePeso': 149,
+      'billingCycle': '/month',
       'credits': '150 Credits / mo',
-      'tagline': 'Ideal for individual exploration & steady queries',
+      'tagline': 'Ideal for personal daily exploration & steady queries',
       'isPopular': false,
       'features': [
         '150 monthly credit pool',
@@ -40,16 +39,16 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     },
     {
       'id': 'basic',
-      'name': 'Basic Tier',
-      'monthlyPrice': 14.99,
-      'annualPrice': 11.99,
+      'name': 'Basic Plan',
+      'pricePeso': 399,
+      'billingCycle': '/month',
       'credits': '600 Credits / mo',
       'tagline': 'Maximum velocity for builders & daily engineers',
       'isPopular': true,
       'features': [
         '600 monthly credit pool',
         'Priority multi-key routing queue',
-        'Image & document attachments',
+        'Image vision & document attachments',
         'Fast & Vision multimodal models',
         'Syntax-highlighted code exporter',
         'Zero queue delay',
@@ -57,51 +56,53 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     },
     {
       'id': 'pro',
-      'name': 'Pro Tier',
-      'monthlyPrice': 29.99,
-      'annualPrice': 23.99,
+      'name': 'Pro Unlimited Plan',
+      'pricePeso': 899,
+      'billingCycle': '/month',
       'credits': 'Unlimited Credits',
       'tagline': 'Enterprise compute with top-tier reasoning engines',
       'isPopular': false,
       'features': [
         'Unlimited compute allowance',
-        'Instant dedicated API key allocation',
+        'Dedicated high-priority API allocation',
         'Advanced reasoning (o-series / Claude 3.7)',
-        'Live waveform voice conversation',
+        'Fast Mode + Web Search + Thinking toggles',
         'Custom instructions & Knowledge base',
-        'Unlimited project workspaces',
+        'Unlimited projects & pinned chats',
       ],
     },
   ];
 
-  Future<void> _handleUpgrade(String tierId) async {
-    setState(() => _isLoading = true);
+  Future<void> _handleTelegramRedirect(Map<String, dynamic> tier) async {
+    final planName = tier['name'];
+    final price = tier['pricePeso'];
+    final userId = widget.currentUser.id;
+    final userEmail = widget.currentUser.email;
+    final userName = widget.currentUser.displayName;
+
+    final prefilledMsg = Uri.encodeComponent(
+      'Hello @$_telegramAdminUsername! I want to subscribe to WormDonz AI:\n\n'
+      '📦 Plan: $planName (₱$price/month)\n'
+      '👤 User: $userName ($userEmail)\n'
+      '🆔 User ID: $userId\n\n'
+      'Please send the GCash / Maya payment instructions to activate my subscription.',
+    );
+
+    final telegramUrl = Uri.parse('https://t.me/$_telegramAdminUsername?text=$prefilledMsg');
 
     try {
-      final updatedUser = await ApiService.upgradeTier(tierId, userId: widget.currentUser.id);
-      if (mounted) {
-        setState(() => _isLoading = false);
-        widget.onUpgraded(updatedUser);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: WormDonzColors.electricBlue,
-            content: Text(
-              '🎉 Upgraded to ${tierId.toUpperCase()} Tier successfully!',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-        );
-
-        Navigator.of(context).pop();
+      if (await canLaunchUrl(telegramUrl)) {
+        await launchUrl(telegramUrl, mode: LaunchMode.externalApplication);
+      } else {
+        // Fallback open in web browser
+        await launchUrl(telegramUrl, mode: LaunchMode.platformDefault);
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Colors.redAccent,
-            content: Text('Failed to upgrade: $e'),
+            content: Text('Could not open Telegram: $e. You can contact @$_telegramAdminUsername directly.'),
           ),
         );
       }
@@ -119,6 +120,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: bgColor,
+        elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.close_rounded, color: textColor),
           onPressed: () => Navigator.of(context).pop(),
@@ -159,73 +161,57 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Text(
-                'Unlock True Model Velocity',
+                'Unlock Unlimited Intelligence',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.w800,
                   color: textColor,
                   letterSpacing: -0.5,
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Switch plans anytime. Zero disruption to ongoing chats.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: mutedColor),
               ),
-              const SizedBox(height: 20),
-
-              // Billing Cycle Switcher (Monthly vs Annual)
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: isDark ? WormDonzColors.darkCharcoal : WormDonzColors.softGray,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildCycleButton('Monthly', !_isAnnual, () => setState(() => _isAnnual = false)),
-                    _buildCycleButton('Annual (Save 20%)', _isAnnual, () => setState(() => _isAnnual = true)),
-                  ],
-                ),
+              const SizedBox(height: 8),
+              Text(
+                'Select a plan below to subscribe via GCash/Maya directly with the admin on Telegram.',
+                style: TextStyle(fontSize: 13, color: mutedColor, height: 1.4),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
 
-              // Tier Cards List
+              // Pricing Cards
               ..._tiers.map((tier) => _buildTierCard(tier, isDark, textColor, mutedColor)),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Enterprise notice
+              // Security & Instant Activation Guarantee
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: isDark ? WormDonzColors.darkCharcoal : WormDonzColors.softGray,
-                  borderRadius: BorderRadius.circular(16),
+                  color: isDark ? const Color(0xFF141416) : const Color(0xFFF2F2F7),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight,
-                    width: 0.6,
+                    width: 0.8,
                   ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.bolt_rounded, color: WormDonzColors.electricBlue, size: 24),
+                    const Icon(Icons.bolt_rounded, color: Color(0xFF00F5A0), size: 24),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Need custom enterprise API quotas?',
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: textColor),
+                            'Instant Telegram Admin Verification',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: textColor),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Reach out to enterprise@wormdonz.ai for dedicated cluster setups.',
-                            style: TextStyle(fontSize: 12, color: mutedColor),
+                            'Directly connected with @$_telegramAdminUsername. Your credits activate instantly upon payment confirmation.',
+                            style: TextStyle(color: mutedColor, fontSize: 11.5),
                           ),
                         ],
                       ),
@@ -233,29 +219,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCycleButton(String label, bool isSelected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? WormDonzColors.electricBlue : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            fontSize: 12,
           ),
         ),
       ),
@@ -268,30 +233,40 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     Color textColor,
     Color mutedColor,
   ) {
-    final isCurrent = widget.currentUser.tier == tier['id'];
-    final isPopular = tier['isPopular'] as bool;
-    final price = _isAnnual ? tier['annualPrice'] : tier['monthlyPrice'];
+    final isCurrent = widget.currentUser.tier.toLowerCase() == tier['id'];
+    final isPopular = tier['isPopular'] == true;
+    final price = tier['pricePeso'];
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: isDark ? WormDonzColors.darkCharcoal : WormDonzColors.softGray,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isPopular
-              ? WormDonzColors.electricBlue
-              : (isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight),
-          width: isPopular ? 1.8 : 0.8,
-        ),
-      ),
+      margin: const EdgeInsets.only(bottom: 20),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Padding(
+          Container(
             padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isPopular
+                    ? WormDonzColors.electricBlue
+                    : (isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight),
+                width: isPopular ? 1.8 : 0.8,
+              ),
+              boxShadow: isPopular
+                  ? [
+                      BoxShadow(
+                        color: WormDonzColors.electricBlue.withOpacity(0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : null,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Tier Name & Credits
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -299,52 +274,58 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       tier['name'],
                       style: TextStyle(
                         fontSize: 18,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                         color: textColor,
                       ),
                     ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          '\$$price',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: textColor,
-                          ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: WormDonzColors.electricBlue.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        tier['credits'],
+                        style: const TextStyle(
+                          color: WormDonzColors.electricBlue,
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
                         ),
-                        Text(
-                          '/mo',
-                          style: TextStyle(fontSize: 12, color: mutedColor),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   tier['tagline'],
                   style: TextStyle(fontSize: 12, color: mutedColor),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
-                // Credit badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: WormDonzColors.electricBlue.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '⚡ ${tier['credits']}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: WormDonzColors.electricBlue,
+                // Price Section in Philippine Peso (₱)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      '₱$price',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: textColor,
+                        letterSpacing: -1,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 4),
+                    Text(
+                      tier['billingCycle'],
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: mutedColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 const Divider(height: 1),
@@ -359,7 +340,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       children: [
                         const Icon(
                           Icons.check_circle_rounded,
-                          color: WormDonzColors.electricBlue,
+                          color: Color(0xFF00F5A0),
                           size: 16,
                         ),
                         const SizedBox(width: 8),
@@ -374,36 +355,42 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   );
                 })),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
 
-                // Action Button
+                // Action Button -> Direct Telegram Redirection
                 SizedBox(
                   width: double.infinity,
-                  height: 44,
+                  height: 46,
                   child: ElevatedButton(
-                    onPressed: isCurrent || _isLoading ? null : () => _handleUpgrade(tier['id']),
+                    onPressed: isCurrent ? null : () => _handleTelegramRedirect(tier),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isPopular
-                          ? WormDonzColors.electricBlue
-                          : (isDark ? WormDonzColors.activePillDark : Colors.white),
-                      foregroundColor: isPopular
-                          ? Colors.white
-                          : (isDark ? WormDonzColors.primaryTextDark : WormDonzColors.primaryTextLight),
+                          ? const Color(0xFF0088CC) // Telegram Blue
+                          : (isDark ? const Color(0xFF1C1C1E) : Colors.white),
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
-                          color: isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight,
-                          width: 0.6,
+                          color: isPopular ? const Color(0xFF0088CC) : (isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight),
+                          width: 1,
                         ),
                       ),
                       elevation: 0,
                     ),
-                    child: Text(
-                      isCurrent ? 'Current Plan' : 'Select ${tier['name']}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: isCurrent ? mutedColor : null,
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.send_rounded, size: 18, color: Colors.white),
+                        const SizedBox(width: 8),
+                        Text(
+                          isCurrent ? 'Current Active Plan' : 'Subscribe via Telegram (@$_telegramAdminUsername)',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13.5,
+                            color: isCurrent ? mutedColor : Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
