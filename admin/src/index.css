@@ -6,7 +6,83 @@
   body {
     background-color: #000000;
     color: #ffffff;
+    overflow-x: hidden;
   }
+}
+
+/* Perspective Grid Floor Animation */
+.perspective-grid {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  mask-image: radial-gradient(ellipse 65% 50% at 50% 0%, #000 65%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 65% 50% at 50% 0%, #000 65%, transparent 100%);
+}
+
+/* 3D Phone Levitation */
+@keyframes phoneFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(1.5deg);
+  }
+}
+.animate-phone-float {
+  animation: phoneFloat 6s ease-in-out infinite;
+}
+
+/* Light Sheen Sweep Animation */
+@keyframes lightSheen {
+  0% {
+    transform: translateX(-150%) skewX(-20deg);
+  }
+  20%, 100% {
+    transform: translateX(250%) skewX(-20deg);
+  }
+}
+.animate-sheen {
+  animation: lightSheen 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Glowing Ambient Orbs */
+@keyframes floatOrb1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -20px) scale(1.1); }
+}
+@keyframes floatOrb2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-25px, 25px) scale(0.95); }
+}
+.animate-orb-1 {
+  animation: floatOrb1 10s ease-in-out infinite;
+}
+.animate-orb-2 {
+  animation: floatOrb2 12s ease-in-out infinite;
+}
+
+/* Text Shimmer */
+@keyframes textShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer-text {
+  background: linear-gradient(90deg, #FFFFFF 0%, #00D2FF 25%, #0A84FF 50%, #00D2FF 75%, #FFFFFF 100%);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: textShimmer 6s linear infinite;
+}
+
+/* Spinner Arc Animation */
+@keyframes rotateArc {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.animate-spin-arc {
+  animation: rotateArc 0.9s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
 }
 
 /* Custom sleek scrollbar for OLED theme */
