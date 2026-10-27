@@ -599,10 +599,10 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
               🎁 Referral &amp; Invitation Program
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-              Paano Ma-qualify sa Invitation Rewards
+              How to Qualify for Invitation Rewards
             </h2>
             <p className="text-sm text-neutral-400 leading-relaxed">
-              Makatanggap ng <strong className="text-emerald-400 font-bold">+10 Bonus Credits</strong> sa bawat kaibigan o kasamahan na matagumpay mong mai-invite. Basahin ang 4 na hakbang at qualification guidelines sa ibaba.
+              Earn <strong className="text-emerald-400 font-bold">+10 Bonus Credits</strong> for every friend or colleague you successfully invite. Review the 4 straightforward steps and qualification guidelines below.
             </p>
           </div>
 
@@ -616,9 +616,9 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
                 </div>
                 <Share2 className="w-4 h-4 text-neutral-500" />
               </div>
-              <h3 className="text-base font-bold text-white">Kunin ang Referral Code</h3>
+              <h3 className="text-base font-bold text-white">Get Your Referral Code</h3>
               <p className="text-xs text-neutral-400 leading-relaxed">
-                Buksan ang WormDonz Mobile App, pumunta sa iyong Profile, at kopyahin ang iyong natatanging <code className="text-electric-400 font-mono font-bold">WORM-XXXXX</code> invitation code o shareable link.
+                Open the WormDonz Mobile App, navigate to your Profile, and copy your unique <code className="text-electric-400 font-mono font-bold">WORM-XXXXX</code> invitation code or direct share link.
               </p>
             </div>
 
@@ -630,9 +630,9 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
                 </div>
                 <Users className="w-4 h-4 text-neutral-500" />
               </div>
-              <h3 className="text-base font-bold text-white">I-share sa Kaibigan</h3>
+              <h3 className="text-base font-bold text-white">Share with Colleagues</h3>
               <p className="text-xs text-neutral-400 leading-relaxed">
-                I-send ang iyong code o link sa mga kakilala. Ilalagay nila ito sa <span className="text-white font-semibold">"Invitation Code"</span> box habang nagpaparehistro sa bagong account.
+                Send your code or link to your network. They input it in the <span className="text-white font-semibold">"Invitation Code"</span> box during new account registration.
               </p>
             </div>
 
@@ -644,9 +644,9 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
                 </div>
                 <ShieldCheck className="w-4 h-4 text-neutral-500" />
               </div>
-              <h3 className="text-base font-bold text-white">I-verify ang 6-Digit OTP</h3>
+              <h3 className="text-base font-bold text-white">Verify 6-Digit OTP</h3>
               <p className="text-xs text-neutral-400 leading-relaxed">
-                Kailangang mag-sign up gamit ang lehitimong personal email (bawal ang throwaway/temp mail) at kumpletuhin ang 6-digit OTP verification na ipapadala sa inbox.
+                They register with a genuine personal or work email and enter the secure 6-digit one-time code sent directly to their email inbox.
               </p>
             </div>
 
@@ -660,7 +660,7 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
               </div>
               <h3 className="text-base font-bold text-white">Instant +10 Credits!</h3>
               <p className="text-xs text-neutral-400 leading-relaxed">
-                Kapag na-verify ang bagong user sa hiwalay na cellphone, <strong className="text-emerald-400 font-bold">+10 Bonus Credits</strong> agad ang idadagdag sa inviter, at makakatanggap din ang kaibigan ng 10 Welcome Credits.
+                Once verified on an independent mobile device, <strong className="text-emerald-400 font-bold">+10 Bonus Credits</strong> are immediately credited to you, and your friend gets 10 Welcome Credits.
               </p>
             </div>
           </div>
@@ -672,11 +672,11 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="w-4 h-4 text-emerald-400" />
                   <h4 className="text-sm font-bold text-white uppercase tracking-wider">
-                    Mga Patakaran para Ma-qualify (Qualification &amp; Anti-Farming Shield)
+                    Qualification Guidelines &amp; Anti-Farming Shield
                   </h4>
                 </div>
                 <p className="text-xs text-neutral-400">
-                  Upang maprotektahan ang AI compute resources at panatilihing patas ang sistema, may aktibong hardware validation ang WormDonz:
+                  To safeguard neural compute resources and preserve fairness, WormDonz enforces automated hardware validation:
                 </p>
               </div>
               <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400 font-bold shrink-0">
@@ -688,30 +688,30 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
               <div className="space-y-2 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
                 <div className="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Hiwalay na Device</span>
+                  <span>Independent Device</span>
                 </div>
                 <p className="text-[11px] text-neutral-400 leading-relaxed">
-                  Dapat nasa hiwalay na pisikal na cellphone o device ang inimbita (maximum 1 referral reward kada physical device ID). Bawal mag-refer sa sariling phone.
+                  The invited user must install and sign in on a distinct physical mobile device (limit of 1 referral reward per hardware ID).
                 </p>
               </div>
 
               <div className="space-y-2 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
                 <div className="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Lehitimong Email</span>
+                  <span>Legitimate Email</span>
                 </div>
                 <p className="text-[11px] text-neutral-400 leading-relaxed">
-                  Tanging totoong personal/work emails (tulad ng Gmail, Yahoo, Outlook) ang tinatanggap. Awtomatikong bina-block ang temporary at disposable fake email domains.
+                  Only authentic personal or enterprise mail providers (Gmail, Yahoo, Outlook, iCloud) are eligible. Throwaway temporary mailboxes are rejected.
                 </p>
               </div>
 
               <div className="space-y-2 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
                 <div className="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Bawal ang Self-Referral</span>
+                  <span>No Self-Referrals</span>
                 </div>
                 <p className="text-[11px] text-neutral-400 leading-relaxed">
-                  Mahigpit na ipinagbabawal ang paggamit ng sariling referral code o paggawa ng dummy accounts para dayain ang credits. Awtomatikong madi-disqualify ang ganitong gawi.
+                  Referral farming using clone accounts, emulators, or personal aliases is strictly prohibited and automatically disqualified by the security shield.
                 </p>
               </div>
 
@@ -721,7 +721,7 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
                   <span>Network Cluster Limit</span>
                 </div>
                 <p className="text-[11px] text-neutral-400 leading-relaxed">
-                  May proteksyon laban sa bot farms (limitasyon sa bilang ng sabay-sabay na pagpaparehistro sa iisang IP network subnet) upang masiguro ang lehitimong paggamit.
+                  Advanced heuristics monitor simultaneous registrations on identical IP subnets to prevent automated bot scripts.
                 </p>
               </div>
             </div>
@@ -794,6 +794,10 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span><strong>15 Daily</strong> Vision Image Uploads</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     <span>Standard WormDonz AI Model</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -833,6 +837,10 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-electric-400 shrink-0" />
+                    <span><strong>25 Daily</strong> Vision Image Uploads</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-electric-400 shrink-0" />
                     <span>Priority Multi-Key Routing Queue</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -868,6 +876,10 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     <span><strong>Unlimited Compute</strong> Allowance</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span><strong>Unlimited Vision</strong> Image Uploads</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />

@@ -50,6 +50,7 @@ class DatabaseStore {
                 credit_allowance: 150,
                 features: [
                     '150 monthly credit pool',
+                    '15 daily vision image uploads',
                     'Standard WormDonz AI model',
                     'Standard latency & processing',
                     'Complete chat history sync',
@@ -67,6 +68,7 @@ class DatabaseStore {
                 credit_allowance: 600,
                 features: [
                     '600 monthly credit pool',
+                    '25 daily vision image uploads',
                     'Priority multi-key routing queue',
                     'Image vision & document attachments',
                     'Fast & Vision multimodal models',
@@ -85,6 +87,7 @@ class DatabaseStore {
                 credit_allowance: 5000,
                 features: [
                     'Unlimited compute allowance',
+                    'Unlimited vision image uploads',
                     'Dedicated high-priority API allocation',
                     'Advanced reasoning (o-series / Claude 3.7)',
                     'Fast Mode + Web Search + Thinking toggles',

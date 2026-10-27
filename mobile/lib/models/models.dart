@@ -49,14 +49,14 @@ class UserModel {
         maxAllowed = 3;
         remaining = (3 - lifetime).clamp(0, 3).toInt();
       } else if (tier == 'starter' || tier == 'start') {
-        maxAllowed = 10;
-        remaining = (10 - today).clamp(0, 10).toInt();
+        maxAllowed = 15;
+        remaining = (15 - today).clamp(0, 15).toInt();
       } else if (tier == 'basic') {
-        maxAllowed = 20;
-        remaining = (20 - today).clamp(0, 20).toInt();
+        maxAllowed = 25;
+        remaining = (25 - today).clamp(0, 25).toInt();
       } else if (tier == 'pro') {
-        maxAllowed = 50;
-        remaining = (50 - today).clamp(0, 50).toInt();
+        maxAllowed = 999999;
+        remaining = 999999;
       }
     }
 

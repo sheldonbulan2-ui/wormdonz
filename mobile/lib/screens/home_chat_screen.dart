@@ -554,14 +554,14 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
     // 1. Strict Free Tier Lifetime Quota Check
     if (_currentUser.tier == 'free' && _currentUser.imageUsedLifetime >= 3) {
       _showImagePaywallSheet(
-        message: 'You have used all 3 Free Lifetime Image Uploads. Upgrade to Starter (10/day), Basic (20/day), or Pro (50/day) to continue image vision analysis.',
+        message: 'You have used all 3 Free Lifetime Image Uploads. Upgrade to Starter (15/day), Basic (25/day), or Pro (Unlimited) to continue image vision analysis.',
         isLifetime: true,
       );
       return;
     }
 
     // 2. Paid Daily Quota Check
-    if (_currentUser.remainingImageQuota <= 0) {
+    if (_currentUser.tier != 'pro' && _currentUser.remainingImageQuota <= 0) {
       _showImagePaywallSheet(
         message: 'Your image upload quota for today has been reached. Daily quotas reset at 4:00 PM Philippine Time, or upgrade to a higher tier.',
         isLifetime: false,
@@ -571,9 +571,12 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isFree = _currentUser.tier == 'free';
+    final isPro = _currentUser.tier == 'pro';
     final quotaText = isFree
         ? '🖼️ ${_currentUser.remainingImageQuota}/3 Free Lifetime Image Uploads Left'
-        : '🖼️ ${_currentUser.remainingImageQuota}/${_currentUser.maxImageAllowed} Daily Image Uploads Left';
+        : (isPro
+            ? '🖼️ Unlimited Vision Image Uploads'
+            : '🖼️ ${_currentUser.remainingImageQuota}/${_currentUser.maxImageAllowed} Daily Image Uploads Left');
 
     showModalBottomSheet(
       context: context,
@@ -883,7 +886,7 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
         );
         return;
       }
-      if (_currentUser.tier != 'free' && _currentUser.remainingImageQuota < _base64Images.length) {
+      if (_currentUser.tier != 'free' && _currentUser.tier != 'pro' && _currentUser.remainingImageQuota < _base64Images.length) {
         _showImagePaywallSheet(
           message: 'Insufficient daily image upload allowance. Quotas reset at 4:00 PM PH Time.',
           isLifetime: false,

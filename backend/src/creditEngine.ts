@@ -115,9 +115,9 @@ export class CreditEngine {
   /**
    * Verifies if user has sufficient image upload allowance based on tier.
    * Free Tier: 3 Image Uploads LIFETIME
-   * Starter Plan: 10 Image Uploads per day (resets 4:00 PM PH Time)
-   * Basic Plan: 20 Image Uploads per day (resets 4:00 PM PH Time)
-   * Pro Plan: 50 Image Uploads per day (resets 4:00 PM PH Time)
+   * Starter Plan: 15 Image Uploads per day (resets 4:00 PM PH Time)
+   * Basic Plan: 25 Image Uploads per day (resets 4:00 PM PH Time)
+   * Pro Plan: Unlimited Image Uploads (resets 4:00 PM PH Time)
    */
   public verifyImageUploadAllowance(userId: string, imageCount = 1): {
     allowed: boolean;
@@ -167,11 +167,22 @@ export class CreditEngine {
       };
     }
 
-    // 2. Paid Tiers Daily Limits
-    let dailyLimit = 10;
-    if (user.tier === 'start') dailyLimit = 10;
-    else if (user.tier === 'basic') dailyLimit = 20;
-    else if (user.tier === 'pro') dailyLimit = 50;
+    // 2. Pro Tier (Unlimited Vision Image Uploads)
+    if (user.tier === 'pro') {
+      return {
+        allowed: true,
+        tier: 'pro',
+        image_used_lifetime: user.image_used_lifetime,
+        image_used_today: user.image_used_today,
+        remaining: 999999,
+        maxAllowed: 999999
+      };
+    }
+
+    // 3. Paid Tiers Daily Limits
+    let dailyLimit = 15;
+    if (user.tier === 'start') dailyLimit = 15;
+    else if (user.tier === 'basic') dailyLimit = 25;
 
     const remainingToday = Math.max(0, dailyLimit - user.image_used_today);
     if (user.image_used_today + imageCount > dailyLimit) {
