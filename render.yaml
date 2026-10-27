@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: wormdonz-ai
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TIDB_HOST
+        value: gateway01.ap-southeast-1.prod.aws.tidbcloud.com
+      - key: TIDB_PORT
+        value: "4000"
+      - key: TIDB_USER
+        value: 2MMZ3bZGCHjw5Bt.root
+      - key: TIDB_PASSWORD
+        value: m1F0ie0iZuh278mZ
+      - key: TIDB_DATABASE
+        value: wormdonz
