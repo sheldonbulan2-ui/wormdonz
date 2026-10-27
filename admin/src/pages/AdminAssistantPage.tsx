@@ -41,14 +41,17 @@ export const AdminAssistantPage: React.FC<Props> = ({ metrics, feedback, keys, o
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
     setIsLoading(true);
 
     try {
-      const res = await adminApi.askAdminAssistant(prompt);
+      const historyPayload = nextMessages.slice(-8).map(m => ({ role: m.role, content: m.text }));
+      const res = await adminApi.askAdminAssistant(prompt, historyPayload);
       const assistantMsg = {
         role: 'assistant' as const,
         text: res.reply || 'All systems functional.',
+        source: res.source,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, assistantMsg]);
@@ -183,8 +186,13 @@ export const AdminAssistantPage: React.FC<Props> = ({ metrics, feedback, keys, o
                   }`}
                 >
                   {msg.text}
-                  <div className={`text-[10px] mt-2 opacity-40 ${isAssistant ? 'text-left' : 'text-right'}`}>
-                    {msg.time}
+                  <div className={`text-[10px] mt-2 flex items-center justify-between opacity-60 ${isAssistant ? '' : 'justify-end'}`}>
+                    {isAssistant && (msg as any).source && (
+                      <span className="font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 text-[9px]">
+                        AI: {(msg as any).source}
+                      </span>
+                    )}
+                    <span>{msg.time}</span>
                   </div>
                 </div>
               </div>

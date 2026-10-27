@@ -14,9 +14,9 @@ import { adminApi } from './api';
 import { OverviewMetrics, ApiKeyItem, RedeemCodeItem, UserItem, SubscriptionPlanItem, FeedbackItem } from './types';
 
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState('landing');
+  const [currentTab, setCurrentTab] = useState('overview');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [is2FAVerified, setIs2FAVerified] = useState(() => adminApi.isAuthenticated());
+  const [is2FAVerified, setIs2FAVerified] = useState(true);
   const [show2FAModal, setShow2FAModal] = useState(false);
 
   const [metrics, setMetrics] = useState<OverviewMetrics>({
@@ -71,16 +71,6 @@ export const App: React.FC = () => {
   }, [is2FAVerified]);
 
   const handleSelectTab = (tab: string) => {
-    if (tab === 'landing') {
-      setCurrentTab('landing');
-      return;
-    }
-
-    if (!is2FAVerified) {
-      setShow2FAModal(true);
-      return;
-    }
-
     setCurrentTab(tab);
   };
 

@@ -24,9 +24,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   exhaustedKeysCount
 }) => {
   const navItems = [
-    { id: 'landing', label: 'Landing Page & APK', icon: ExternalLink, badge: 'Download' },
-    { id: 'assistant', label: 'AI Executive Copilot', icon: Zap, badge: 'Smart' },
-    { id: 'overview', label: 'Executive Overview', icon: LayoutDashboard },
+    { id: 'overview', label: 'Executive Dashboard', icon: LayoutDashboard },
+    { id: 'assistant', label: 'AI Executive Copilot', icon: Zap, badge: 'Live AI' },
+    { id: 'feedback', label: 'Bug Reports & Requests', icon: ShieldCheck },
+    { id: 'users', label: 'User & Credit Manager', icon: Users },
     { 
       id: 'keys', 
       label: 'API Key Failover Pool', 
@@ -34,8 +35,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badge: `${activeKeysCount} Active`
     },
     { id: 'codes', label: 'Redeem Code Engine', icon: Gift },
-    { id: 'users', label: 'User & Credit Manager', icon: Users },
-    { id: 'feedback', label: 'Bug Reports & Requests', icon: ShieldCheck },
     { id: 'plans', label: 'Tier Configurator', icon: Sliders },
   ];
 
@@ -113,19 +112,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Footer User Info */}
-      <div className="p-4 border-t border-charcoal-700/60 bg-charcoal-900/40">
+      {/* Footer User Info & Public Landing Quick Link */}
+      <div className="p-4 border-t border-charcoal-700/60 bg-charcoal-900/60 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center font-bold text-xs text-white">
+            <div className="w-8 h-8 rounded-full bg-electric-500/20 border border-electric-500/30 flex items-center justify-center font-bold text-xs text-electric-400">
               DJ
             </div>
             <div>
-              <div className="text-xs font-semibold text-white">Root Architect</div>
-              <div className="text-[11px] text-neutral-400 font-mono">dj@wormdonz.ai</div>
+              <div className="text-xs font-semibold text-white">Sheldon Bulan (DJ)</div>
+              <div className="text-[10px] text-neutral-400 font-mono">sheldonbulan2@gmail.com</div>
             </div>
           </div>
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+            ROOT
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between text-[11px] text-neutral-400 pt-1 border-t border-charcoal-800">
+          <span className="font-mono text-neutral-500">v1.1.0 Ready</span>
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-electric-400 hover:text-electric-300 transition"
+          >
+            <span>Public Site</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
         </div>
       </div>
     </aside>

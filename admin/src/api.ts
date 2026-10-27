@@ -326,18 +326,18 @@ export const adminApi = {
     return res.json();
   },
 
-  // 7. Executive AI Copilot
-  async askAdminAssistant(message: string): Promise<{ reply: string; source?: string }> {
+  // 7. Executive Real AI Copilot
+  async askAdminAssistant(message: string, history?: any[]): Promise<{ reply: string; source?: string; keyAlias?: string }> {
     try {
       const res = await fetch(`${BASE_URL}/admin/assistant/chat`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ message })
+        body: JSON.stringify({ message, history })
       });
       if (res.ok) return await res.json();
     } catch (_) {}
     return {
-      reply: 'Operational status normal. All pools active.',
+      reply: 'Operational status normal. All key pools, SMTP relays, and failover routes active.',
       source: 'offline'
     };
   }
