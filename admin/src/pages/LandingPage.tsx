@@ -265,8 +265,8 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
 
             {/* Value Proposition Description */}
             <p className="text-base sm:text-lg text-neutral-300 leading-relaxed max-w-xl">
-              Experience the classic minimalist ChatGPT aesthetic in authentic <code className="text-electric-400 font-mono font-bold">#000000</code> OLED black. 
-              Engineered with uninterrupted multi-key failover routing, multimodal vision photo analysis, and instant streaming on any Android device.
+              Experience the elite minimalist WormDonz AI interface in authentic <code className="text-electric-400 font-mono font-bold">#000000</code> OLED black. 
+              Engineered with unrestricted deterministic execution, uninterrupted multi-key failover routing, multimodal vision photo analysis, and instant streaming on any Android device.
             </p>
 
             {/* =========================================================================
@@ -554,35 +554,46 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Bento Card 1: Uninterrupted High-Speed Streaming */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Bento Card 1: Absolute No-Refusal & Direct Execution */}
             <div className="p-7 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl space-y-4 hover:border-electric-500/40 transition duration-200">
               <div className="w-12 h-12 rounded-2xl bg-electric-500/15 border border-electric-500/30 flex items-center justify-center text-electric-400">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Unrestricted Direct Execution</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Deterministic execution engine. Answers complex engineering, reverse engineering, offensive security, and scripting tasks directly with zero refusals, disclaimers, or preambles.
+              </p>
+            </div>
+
+            {/* Bento Card 2: Uninterrupted High-Speed Streaming */}
+            <div className="p-7 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl space-y-4 hover:border-cyan-500/40 transition duration-200">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
                 <Cpu className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white">Uninterrupted High-Speed Streaming</h3>
+              <h3 className="text-lg font-bold text-white">Zero-Downtime Failover</h3>
               <p className="text-xs text-neutral-400 leading-relaxed">
                 Connects through an active multi-node failover pool. If one provider hits capacity, WormDonz automatically hot-swaps to the next active key with zero stream interruptions.
               </p>
             </div>
 
-            {/* Bento Card 2: Multimodal Vision Image Analysis */}
-            <div id="vision" className="p-7 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl space-y-4 hover:border-cyan-500/40 transition duration-200">
-              <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+            {/* Bento Card 3: Multimodal Vision Image Analysis */}
+            <div id="vision" className="p-7 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl space-y-4 hover:border-amber-500/40 transition duration-200">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
                 <ImageIcon className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white">Multimodal Vision Image Analysis</h3>
+              <h3 className="text-lg font-bold text-white">Multimodal Vision Analysis</h3>
               <p className="text-xs text-neutral-400 leading-relaxed">
                 Upload photos from your gallery or snap code directly from your mobile camera. WormDonz parses diagrams, syntax errors, and architectural blueprints in seconds.
               </p>
             </div>
 
-            {/* Bento Card 3: Redeem Codes & Instant Top-Ups */}
+            {/* Bento Card 4: Redeem Codes & Instant Top-Ups */}
             <div className="p-7 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl space-y-4 hover:border-emerald-500/40 transition duration-200">
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                 <Gift className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white">Redeem Codes &amp; Instant Top-Ups</h3>
+              <h3 className="text-lg font-bold text-white">Redeem Codes &amp; Rewards</h3>
               <p className="text-xs text-neutral-400 leading-relaxed">
                 Unlock promotional vouchers and credit rewards directly inside the app. Share your unique referral code with friends to receive +10 bonus credits on every verification.
               </p>

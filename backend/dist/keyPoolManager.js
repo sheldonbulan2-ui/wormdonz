@@ -182,13 +182,31 @@ class KeyPoolManager {
                 // Fast, highly available models with cascade failover
                 const candidateModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
                 let lastError = null;
+                // Extract system prompt if present in messages
+                const systemMessage = request.messages?.find(m => m.role === 'system')?.content;
+                const safetySettings = [
+                    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' }
+                ];
                 for (const geminiModel of candidateModels) {
                     try {
                         const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${key.encrypted_key}`;
+                        const requestBody = {
+                            contents: [{ parts }],
+                            safetySettings
+                        };
+                        if (systemMessage) {
+                            requestBody.system_instruction = {
+                                parts: [{ text: systemMessage }]
+                            };
+                        }
                         const response = await fetch(url, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ contents: [{ parts }] }),
+                            body: JSON.stringify(requestBody),
                             signal: AbortSignal.timeout(10000) // 10s timeout prevents hung connections
                         });
                         if (!response.ok) {
@@ -363,18 +381,18 @@ class KeyPoolManager {
         if (m.includes('coder') || m.includes('pro')) {
             let codeSnippet = '';
             if (pLower.includes('python')) {
-                codeSnippet = `\`\`\`python\n# EvilGPT Coder Pro - High Performance Python\ndef process_request(query: str):\n    """Optimized execution pipeline for: ${p}"""\n    tokens = [t.strip() for t in query.split() if t.strip()]\n    return {"status": "success", "length": len(tokens), "raw": query}\n\nif __name__ == '__main__':\n    res = process_request("${p}")\n    print("Execution output:", res)\n\`\`\``;
+                codeSnippet = `\`\`\`python\n# WormDonz Coder Pro - High Performance Python\ndef process_request(query: str):\n    """Optimized execution pipeline for: ${p}"""\n    tokens = [t.strip() for t in query.split() if t.strip()]\n    return {"status": "success", "length": len(tokens), "raw": query}\n\nif __name__ == '__main__':\n    res = process_request("${p}")\n    print("Execution output:", res)\n\`\`\``;
             }
             else if (pLower.includes('dart') || pLower.includes('flutter')) {
-                codeSnippet = `\`\`\`dart\n// EvilGPT Coder Pro - Clean Flutter/Dart Architecture\nclass QueryProcessor {\n  final String prompt;\n  const QueryProcessor(this.prompt);\n\n  Future<Map<String, dynamic>> execute() async {\n    return {'prompt': prompt, 'processed': true, 'timestamp': DateTime.now()};\n  }\n}\n\`\`\``;
+                codeSnippet = `\`\`\`dart\n// WormDonz Coder Pro - Clean Flutter/Dart Architecture\nclass QueryProcessor {\n  final String prompt;\n  const QueryProcessor(this.prompt);\n\n  Future<Map<String, dynamic>> execute() async {\n    return {'prompt': prompt, 'processed': true, 'timestamp': DateTime.now()};\n  }\n}\n\`\`\``;
             }
             else if (pLower.includes('php')) {
-                codeSnippet = `\`\`\`php\n<?php\n// EvilGPT Coder Pro - Secure Backend Logic\nfunction handleQuery(string \$input): array {\n    return [\n        'query' => htmlspecialchars(\$input, ENT_QUOTES, 'UTF-8'),\n        'timestamp' => microtime(true),\n        'status' => 'active'\n    ];\n}\n?>\`\`\``;
+                codeSnippet = `\`\`\`php\n<?php\n// WormDonz Coder Pro - Secure Backend Logic\nfunction handleQuery(string \$input): array {\n    return [\n        'query' => htmlspecialchars(\$input, ENT_QUOTES, 'UTF-8'),\n        'timestamp' => microtime(true),\n        'status' => 'active'\n    ];\n}\n?>\`\`\``;
             }
             else {
-                codeSnippet = `\`\`\`bash\n# EvilGPT Coder Pro - Automated Systems Execution\necho "[WormDonz Engine] Executing solution for: ${p}"\nset -euo pipefail\n\`\`\``;
+                codeSnippet = `\`\`\`bash\n# WormDonz Coder Pro - Automated Systems Execution\necho "[WormDonz Engine] Executing solution for: ${p}"\nset -euo pipefail\n\`\`\``;
             }
-            return `### ⚡ EvilGPT Coder Pro\n\n` +
+            return `### ⚡ WormDonz Coder Pro\n\n` +
                 `Here is the production-grade engineering solution for: **"${p}"**\n\n` +
                 `${codeSnippet}\n\n` +
                 `#### Architectural Specifications:\n` +
@@ -383,7 +401,7 @@ class KeyPoolManager {
                 `- **Computational Efficiency:** Optimized for low latency and zero memory leaks.`;
         }
         if (m.includes('big') || m.includes('reasoning')) {
-            return `### 🧠 EvilGPT BIG — Deep Analytical Breakdown\n\n` +
+            return `### 🧠 WormDonz Deep Reasoning — Analytical Breakdown\n\n` +
                 `**Analytical Thesis on:** *"${p}"*\n\n` +
                 `#### 1. First-Principles Deconstruction\n` +
                 `Addressing *"${p}"* requires dissecting the request into its constituent logical components:\n` +
