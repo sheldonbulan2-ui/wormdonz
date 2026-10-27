@@ -9,6 +9,9 @@ export type MessageRole = 'user' | 'assistant' | 'system';
 export interface User {
   id: string;
   email: string;
+  username?: string;
+  password_hash?: string;
+  is_email_verified?: boolean;
   telegram_id?: string;
   telegram_username?: string;
   display_name: string;
@@ -21,6 +24,14 @@ export interface User {
   is_banned: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface PendingRegistration {
+  username: string;
+  email: string;
+  password_hash: string;
+  otp: string;
+  expires_at: number;
 }
 
 export interface ApiKeyRecord {
@@ -113,6 +124,7 @@ class DatabaseStore {
   public userRedemptions: UserRedeemedCode[] = [];
   public subscriptionPlans: Map<UserTier, SubscriptionPlan> = new Map();
   public transactions: CreditTransaction[] = [];
+  public pendingRegistrations: Map<string, PendingRegistration> = new Map();
 
   constructor() {
     this.seed();

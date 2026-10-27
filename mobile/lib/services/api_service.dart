@@ -86,7 +86,130 @@ class ApiService {
   static const String _prefUserSessionKey = 'wormdonz_current_user_session';
   static const String defaultUserId = 'user-001';
 
-  /// Authenticate exclusively with Telegram
+  /// Register with Username, Gmail, and Password (Triggers Brevo OTP email)
+  static Future<Map<String, dynamic>> registerWithEmail({
+    required String username,
+    required String email,
+    required String password,
+  }) async {
+    final cleanUsername = username.trim();
+    final cleanEmail = email.trim().toLowerCase();
+    final cleanPass = password.trim();
+
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': cleanUsername,
+          'email': cleanEmail,
+          'password': cleanPass,
+        }),
+      ).timeout(const Duration(seconds: 12));
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Verification code sent to $cleanEmail',
+          'email': cleanEmail,
+          'username': cleanUsername,
+          'previewOtp': data['previewOtp'],
+        };
+      } else {
+        throw Exception(data['error'] ?? 'Registration failed. Please try again.');
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Register error: $e');
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  /// Verify 6-digit OTP and activate account with 10 welcome credits
+  static Future<UserModel> verifyEmailOtp({
+    required String email,
+    required String otp,
+  }) async {
+    final cleanEmail = email.trim().toLowerCase();
+    final cleanOtp = otp.trim();
+
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/auth/verify-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': cleanEmail,
+          'otp': cleanOtp,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final user = UserModel.fromJson(data['user']);
+        await saveUserSession(user);
+        return user;
+      } else {
+        throw Exception(data['error'] ?? 'Invalid or expired OTP code.');
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Verify OTP error: $e');
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  /// Resend a fresh 6-digit verification code
+  static Future<Map<String, dynamic>> resendOtp({required String email}) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/auth/resend-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email.trim().toLowerCase()}),
+      ).timeout(const Duration(seconds: 10));
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        return {'success': true, 'previewOtp': data['previewOtp']};
+      } else {
+        throw Exception(data['error'] ?? 'Failed to resend verification code.');
+      }
+    } catch (e) {
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  /// Login with Username/Email and Password
+  static Future<UserModel> loginWithEmailOrUsername({
+    required String identifier,
+    required String password,
+  }) async {
+    final cleanId = identifier.trim();
+    final cleanPass = password.trim();
+
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'identifier': cleanId,
+          'password': cleanPass,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200) {
+        final user = UserModel.fromJson(data['user']);
+        await saveUserSession(user);
+        return user;
+      } else {
+        throw Exception(data['error'] ?? 'Invalid credentials. Please try again.');
+      }
+    } catch (e) {
+      debugPrint('[ApiService] Login error: $e');
+      throw Exception(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  /// Authenticate with Telegram (preserved)
   static Future<UserModel> loginWithTelegram({
     required String username,
     String? firstName,

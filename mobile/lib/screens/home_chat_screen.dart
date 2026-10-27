@@ -11,7 +11,7 @@ import '../widgets/custom_drawer.dart';
 import '../widgets/redeem_code_modal.dart';
 import '../widgets/progressive_markdown_view.dart';
 import 'subscription_screen.dart';
-import 'telegram_login_screen.dart';
+import 'auth_screen.dart';
 
 class HomeChatScreen extends StatefulWidget {
   final UserModel? currentUser;
@@ -83,30 +83,6 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
   bool _userScrolledUp = false;
   String? _lastUserPrompt;
 
-  // Suggested Prompt Cards
-  final List<Map<String, String>> _suggestedPrompts = [
-    {
-      'title': 'Write code',
-      'subtitle': 'Sparse mixture of experts router',
-      'prompt': 'Write a Python implementation of a sparse mixture of experts router with normalized weights.'
-    },
-    {
-      'title': 'OLED dark mode',
-      'subtitle': 'Color tokens & pure black #000000',
-      'prompt': 'Explain the exact design tokens and contrast rules for OLED black interfaces.'
-    },
-    {
-      'title': 'Failover strategy',
-      'subtitle': 'Zero-downtime multi-key pool',
-      'prompt': 'Explain how recursive multi-key failover works when handling HTTP 429 quota exhaustion.'
-    },
-    {
-      'title': 'Brainstorm ideas',
-      'subtitle': 'SaaS credit redemption mechanics',
-      'prompt': 'Suggest high-retention promo code mechanics for developer-focused AI tools.'
-    },
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -153,7 +129,7 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
     if (savedUser == null) {
       if (mounted) {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const TelegramLoginScreen()),
+          MaterialPageRoute(builder: (_) => const AuthScreen()),
         );
       }
       return;
@@ -1212,10 +1188,6 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
                   : _buildMessagesList(textColor, mutedColor, surfaceColor, isDark),
             ),
 
-            // Horizontal Prompt Suggestions (Cleanly hidden on active chat)
-            if (!hasContent)
-              _buildSuggestedPromptCards(textColor, mutedColor, surfaceColor, isDark),
-
             // 3. Floating Bottom Input Bar
             _buildBottomInputBar(textColor, mutedColor, surfaceColor, isDark),
           ],
@@ -1231,8 +1203,8 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 62,
-              height: 62,
+              width: 64,
+              height: 64,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: surfaceColor,
@@ -1242,8 +1214,8 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: WormDonzColors.electricBlue.withOpacity(0.15),
-                    blurRadius: 24,
+                    color: WormDonzColors.electricBlue.withOpacity(0.18),
+                    blurRadius: 28,
                     spreadRadius: 2,
                   ),
                 ],
@@ -1264,68 +1236,11 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
             ),
             const SizedBox(height: 8),
             Text(
-              'Select a suggestion or ask WormDonz anything.',
+              'Ask WormDonz anything.',
               style: TextStyle(fontSize: 13.5, color: mutedColor),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSuggestedPromptCards(Color textColor, Color mutedColor, Color surfaceColor, bool isDark) {
-    return Container(
-      height: 78,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _suggestedPrompts.length,
-        itemBuilder: (ctx, idx) {
-          final item = _suggestedPrompts[idx];
-          return GestureDetector(
-            onTap: () => _handleSendMessage(item['prompt']!),
-            child: Container(
-              width: 195,
-              margin: const EdgeInsets.only(right: 10),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: surfaceColor,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight,
-                  width: 0.6,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    item['title']!,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: textColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item['subtitle']!,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: mutedColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
       ),
     );
   }
@@ -1631,22 +1546,24 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Left: Circular + Attachment Button (#1C1C1E)
+              // Left: Circular + Attachment Button
               GestureDetector(
                 onTap: _openAttachmentPickerModal,
                 child: Container(
                   width: 44,
                   height: 44,
-                  margin: const EdgeInsets.only(bottom: 2),
+                  margin: const EdgeInsets.only(bottom: 1),
                   decoration: BoxDecoration(
                     color: surfaceColor,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isDark ? WormDonzColors.borderDark : WormDonzColors.borderLight,
-                      width: 0.6,
+                      width: 0.8,
                     ),
                   ),
-                  child: Icon(Icons.add, color: textColor, size: 22),
+                  child: Center(
+                    child: Icon(Icons.add_rounded, color: textColor, size: 24),
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -1701,35 +1618,59 @@ class _HomeChatScreenState extends State<HomeChatScreen> with SingleTickerProvid
                       ),
                       const SizedBox(width: 6),
 
-                      // Action Button: Rotating Red Circular Arc Spinner OR Blue Send Button
-                      _isStreaming
-                          ? Container(
-                              width: 32,
-                              height: 32,
-                              padding: const EdgeInsets.all(4),
-                              child: const CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF3B30)), // Continuous Red #FF3B30
-                              ),
-                            )
-                          : GestureDetector(
-                              onTap: () => _handleSendMessage(),
-                              child: Container(
-                                width: 32,
-                                height: 32,
-                                decoration: const BoxDecoration(
-                                  color: WormDonzColors.electricBlue,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.arrow_upward_rounded,
-                                    color: Colors.white,
-                                    size: 19,
+                      // Action Button: Rotating Red Circular Arc Spinner OR Blue Send Button (Strict Zero-Layout-Shift)
+                      SizedBox(
+                        width: 34,
+                        height: 34,
+                        child: Center(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            child: _isStreaming
+                                ? Container(
+                                    key: const ValueKey('streaming_spinner'),
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: isDark ? const Color(0xFF1C1C1E) : const Color(0xFFE5E5EA),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: const Color(0xFFFF3B30).withOpacity(0.35),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 17,
+                                        height: 17,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF3B30)),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : GestureDetector(
+                                    key: const ValueKey('send_button'),
+                                    onTap: () => _handleSendMessage(),
+                                    child: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: const BoxDecoration(
+                                        color: WormDonzColors.electricBlue,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.arrow_upward_rounded,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),

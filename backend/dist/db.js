@@ -11,6 +11,7 @@ class DatabaseStore {
     userRedemptions = [];
     subscriptionPlans = new Map();
     transactions = [];
+    pendingRegistrations = new Map();
     constructor() {
         this.seed();
     }

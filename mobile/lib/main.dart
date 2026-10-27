@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'theme/theme_provider.dart';
 import 'screens/home_chat_screen.dart';
-import 'screens/telegram_login_screen.dart';
+import 'screens/auth_screen.dart';
 import 'models/models.dart';
 import 'services/api_service.dart';
 
@@ -85,7 +85,7 @@ class _AuthGateState extends State<AuthGate> {
           return HomeChatScreen(currentUser: user);
         }
 
-        return const TelegramLoginScreen();
+        return const AuthScreen();
       },
     );
   }
