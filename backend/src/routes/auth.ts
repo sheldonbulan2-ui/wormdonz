@@ -42,10 +42,26 @@ function hashPassword(password: string): string {
 }
 
 /**
- * 1. User Registration: Username, Gmail/Email & Password -> Dispatches Brevo OTP
+ * Generate cryptographically unique 5-character alphanumeric referral code
+ */
+function generateUniqueReferralCode(): string {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  for (let attempt = 0; attempt < 50; attempt++) {
+    let code = 'WORM-';
+    for (let i = 0; i < 5; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const exists = Array.from(db.users.values()).some(u => u.referral_code === code);
+    if (!exists) return code;
+  }
+  return 'WORM-' + crypto.randomBytes(3).toString('hex').toUpperCase();
+}
+
+/**
+ * 1. User Registration: Username, Gmail/Email, Password & Optional Invitation Code
  */
 authRouter.post('/register', async (req: Request, res: Response) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, referralCode, deviceId } = req.body;
 
   if (!username || !email || !password) {
     return res.status(400).json({
@@ -57,6 +73,27 @@ authRouter.post('/register', async (req: Request, res: Response) => {
   const cleanUsername = String(username).trim();
   const cleanEmail = String(email).trim().toLowerCase();
   const cleanPass = String(password).trim();
+  const clientIp = (req.headers['x-forwarded-for'] as string || req.socket.remoteAddress || '').split(',')[0].trim();
+
+  // Validate optional referral code
+  let validatedReferralCode: string | undefined = undefined;
+  if (referralCode && String(referralCode).trim()) {
+    const cleanRef = String(referralCode).trim().toUpperCase();
+    const inviter = Array.from(db.users.values()).find(u => u.referral_code?.toUpperCase() === cleanRef);
+    if (!inviter) {
+      return res.status(400).json({
+        success: false,
+        error: `Invitation code "${cleanRef}" is invalid. Please check the code or clear the field.`
+      });
+    }
+    if (inviter.email.toLowerCase() === cleanEmail) {
+      return res.status(400).json({
+        success: false,
+        error: '⚠️ Self-invitation is strictly forbidden. You cannot use your own referral code.'
+      });
+    }
+    validatedReferralCode = cleanRef;
+  }
 
   if (cleanUsername.length < 3) {
     return res.status(400).json({
@@ -121,6 +158,9 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     email: cleanEmail,
     password_hash: hashPassword(cleanPass),
     otp,
+    referral_code_used: validatedReferralCode,
+    registration_ip: clientIp,
+    device_id: deviceId ? String(deviceId).trim() : undefined,
     expires_at: expiresAt
   });
 
@@ -130,9 +170,10 @@ authRouter.post('/register', async (req: Request, res: Response) => {
 
   return res.status(200).json({
     success: true,
-    message: `Verification code sent to ${cleanEmail}. Check your inbox.`,
+    message: `Verification code sent to ${cleanEmail}. Check your inbox or spam folder.`,
     email: cleanEmail,
     username: cleanUsername,
+    referralApplied: Boolean(validatedReferralCode),
     previewOtp: process.env.NODE_ENV !== 'production' ? otp : undefined
   });
 });
@@ -176,6 +217,9 @@ authRouter.post('/verify-otp', (req: Request, res: Response) => {
     });
   }
 
+  // Generate unique referral code for the new user
+  const userReferralCode = generateUniqueReferralCode();
+
   // Create new active user account
   const newUser: User = {
     id: uuidv4(),
@@ -186,6 +230,9 @@ authRouter.post('/verify-otp', (req: Request, res: Response) => {
     is_email_verified: true,
     credits: 10,
     tier: 'free',
+    referral_code: userReferralCode,
+    registration_ip: pending.registration_ip,
+    device_id: pending.device_id,
     image_used_lifetime: 0,
     image_used_today: 0,
     is_banned: false,
@@ -193,20 +240,127 @@ authRouter.post('/verify-otp', (req: Request, res: Response) => {
     updated_at: new Date().toISOString()
   };
 
+  // Process referral & anti-farming verification
+  let referralBonusGranted = false;
+  let farmingFlagReason: string | undefined = undefined;
+
+  if (pending.referral_code_used) {
+    const inviter = Array.from(db.users.values()).find(
+      u => u.referral_code?.toUpperCase() === pending.referral_code_used?.toUpperCase()
+    );
+
+    if (inviter) {
+      // 1. Self-referral detection
+      const isSelf = inviter.id === newUser.id || inviter.email.toLowerCase() === newUser.email.toLowerCase();
+
+      // 2. Same device fingerprint detection
+      const isSameDevice = Boolean(pending.device_id && inviter.device_id && pending.device_id === inviter.device_id);
+
+      // 3. Multi-account device farm limit (Max 1 referral bonus per physical device)
+      const existingDeviceRewards = pending.device_id
+        ? Array.from(db.referrals.values()).filter(r => r.device_id === pending.device_id && r.status === 'rewarded').length
+        : 0;
+      const isDeviceFarm = existingDeviceRewards >= 1;
+
+      // 4. IP Cluster farming limit (Max 3 referral bonuses per public IP subnet)
+      const existingIpRewards = pending.registration_ip
+        ? Array.from(db.referrals.values()).filter(r => r.ip_address === pending.registration_ip && r.status === 'rewarded').length
+        : 0;
+      const isIpFarm = existingIpRewards >= 3;
+
+      // 5. Circular referral loop check
+      const isCircular = inviter.referred_by === newUser.id;
+
+      if (isSelf) {
+        farmingFlagReason = 'Self-invitation attempt detected';
+      } else if (isSameDevice) {
+        farmingFlagReason = 'Same physical device invitation detected (self-farming blocked)';
+      } else if (isDeviceFarm) {
+        farmingFlagReason = 'Device referral quota reached (limit 1 referral reward per hardware ID)';
+      } else if (isIpFarm) {
+        farmingFlagReason = 'IP network referral quota reached (anti-bot cluster protection)';
+      } else if (isCircular) {
+        farmingFlagReason = 'Circular referral loop detected';
+      }
+
+      const referralId = uuidv4();
+
+      if (farmingFlagReason) {
+        console.warn(`[Anti-Farming] ⚠️ Referral flagged for ${newUser.username} using code ${pending.referral_code_used}: ${farmingFlagReason}`);
+        db.referrals.set(referralId, {
+          id: referralId,
+          inviter_id: inviter.id,
+          invited_user_id: newUser.id,
+          referral_code: pending.referral_code_used,
+          credits_awarded: 0,
+          status: 'flagged_farming',
+          flag_reason: farmingFlagReason,
+          ip_address: pending.registration_ip,
+          device_id: pending.device_id,
+          created_at: new Date().toISOString()
+        });
+      } else {
+        // Legitimate referral! Award +10 credits to both users
+        referralBonusGranted = true;
+        newUser.credits += 10; // Total 20 credits (10 welcome + 10 referral bonus)
+        newUser.referred_by = inviter.id;
+
+        inviter.credits += 10;
+        db.users.set(inviter.id, inviter);
+
+        // Record referral entity
+        db.referrals.set(referralId, {
+          id: referralId,
+          inviter_id: inviter.id,
+          invited_user_id: newUser.id,
+          referral_code: pending.referral_code_used,
+          credits_awarded: 10,
+          status: 'rewarded',
+          ip_address: pending.registration_ip,
+          device_id: pending.device_id,
+          created_at: new Date().toISOString()
+        });
+
+        // Record transactions
+        db.transactions.push({
+          id: uuidv4(),
+          user_id: inviter.id,
+          amount: 10,
+          balance_after: inviter.credits,
+          reason: `referral_invite_reward:${newUser.username}`,
+          reference_id: newUser.id,
+          created_at: new Date().toISOString()
+        });
+
+        db.transactions.push({
+          id: uuidv4(),
+          user_id: newUser.id,
+          amount: 10,
+          balance_after: newUser.credits,
+          reason: `referral_signup_bonus:${inviter.username || inviter.referral_code}`,
+          reference_id: inviter.id,
+          created_at: new Date().toISOString()
+        });
+
+        console.log(`[Referral] 🎁 Bonus granted! Inviter ${inviter.username} (+10) and Invitee ${newUser.username} (+10). Code: ${pending.referral_code_used}`);
+      }
+    }
+  }
+
   db.users.set(newUser.id, newUser);
   db.pendingRegistrations.delete(cleanEmail);
 
-  // Award 10 Welcome Credits transaction
+  // Award standard 10 Welcome Credits transaction
   db.transactions.push({
     id: uuidv4(),
     user_id: newUser.id,
     amount: 10,
-    balance_after: 10,
+    balance_after: referralBonusGranted ? 20 : 10,
     reason: 'signup_grant',
     created_at: new Date().toISOString()
   });
 
-  console.log(`[Auth] 🎉 User registered & verified successfully: ${newUser.username} <${newUser.email}>`);
+  console.log(`[Auth] 🎉 User registered & verified: ${newUser.username} <${newUser.email}> (Credits: ${newUser.credits}, ReferralCode: ${newUser.referral_code})`);
 
   // Return user without password_hash
   const safeUser = { ...newUser };
@@ -214,7 +368,11 @@ authRouter.post('/verify-otp', (req: Request, res: Response) => {
 
   return res.status(201).json({
     success: true,
-    message: 'Account successfully verified! 10 Welcome Credits have been granted.',
+    message: referralBonusGranted
+      ? 'Account verified! 20 Credits granted (10 Welcome + 10 Invitation Bonus)!'
+      : 'Account successfully verified! 10 Welcome Credits have been granted.',
+    referralBonusGranted,
+    farmingWarning: farmingFlagReason,
     user: safeUser
   });
 });
@@ -478,6 +636,7 @@ authRouter.post('/telegram', (req: Request, res: Response) => {
     avatar_url: photoUrl,
     credits: 10,
     tier: 'free',
+    referral_code: generateUniqueReferralCode(),
     is_banned: false,
     image_used_lifetime: 0,
     image_used_today: 0,

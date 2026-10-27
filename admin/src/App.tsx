@@ -14,10 +14,86 @@ import { adminApi } from './api';
 import { OverviewMetrics, ApiKeyItem, RedeemCodeItem, UserItem, SubscriptionPlanItem, FeedbackItem } from './types';
 
 export const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState('overview');
+  // If previously logged in as admin with active token, show overview; otherwise show public landing page
+  const [currentTab, setCurrentTab] = useState<'landing' | string>(() => {
+    return localStorage.getItem('wmdz_admin_token') ? 'overview' : 'landing';
+  });
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [is2FAVerified, setIs2FAVerified] = useState(true);
+  const [is2FAVerified, setIs2FAVerified] = useState(() => {
+    return Boolean(localStorage.getItem('wmdz_admin_token'));
+  });
   const [show2FAModal, setShow2FAModal] = useState(false);
+
+  // Stealth keyboard shortcut listener: "Ctrl + O" followed by "1 2 3"
+  useEffect(() => {
+    let sequenceStage = 0; // 0: idle, 1: ctrl+o pressed, 2: '1' pressed, 3: '2' pressed
+    let timeoutId: any = null;
+
+    const resetSequence = () => {
+      sequenceStage = 0;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Direct backup shortcut: Ctrl + Alt + A or Ctrl + Shift + O
+      if ((e.ctrlKey && e.altKey && (e.key === 'a' || e.key === 'A')) ||
+          (e.ctrlKey && e.shiftKey && (e.key === 'o' || e.key === 'O'))) {
+        e.preventDefault();
+        setShow2FAModal(true);
+        return;
+      }
+
+      // Step 1: Detect Ctrl + O
+      if (e.ctrlKey && (e.key === 'o' || e.key === 'O')) {
+        e.preventDefault();
+        sequenceStage = 1;
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(resetSequence, 3500); // 3.5s window
+        return;
+      }
+
+      // Step 2: Next key must be '1'
+      if (sequenceStage === 1) {
+        if (e.key === '1') {
+          sequenceStage = 2;
+          if (timeoutId) clearTimeout(timeoutId);
+          timeoutId = setTimeout(resetSequence, 3500);
+        } else {
+          resetSequence();
+        }
+        return;
+      }
+
+      // Step 3: Next key must be '2'
+      if (sequenceStage === 2) {
+        if (e.key === '2') {
+          sequenceStage = 3;
+          if (timeoutId) clearTimeout(timeoutId);
+          timeoutId = setTimeout(resetSequence, 3500);
+        } else {
+          resetSequence();
+        }
+        return;
+      }
+
+      // Step 4: Next key must be '3' -> Trigger Admin Portal!
+      if (sequenceStage === 3) {
+        if (e.key === '3') {
+          resetSequence();
+          console.log('[Stealth Trigger] 🔓 Secret sequence "Ctrl+O+123" matched! Opening Admin Portal...');
+          setShow2FAModal(true);
+        } else {
+          resetSequence();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, []);
 
   const [metrics, setMetrics] = useState<OverviewMetrics>({
     totalUsers: 0,
@@ -117,30 +193,9 @@ export const App: React.FC = () => {
     return (
       <div className="relative">
         <LandingPage
-          onEnterDashboard={() => {
-            if (is2FAVerified) {
-              setCurrentTab('overview');
-            } else {
-              setShow2FAModal(true);
-            }
-          }}
+          onEnterDashboard={() => setShow2FAModal(true)}
           activeKeysCount={metrics.activeKeysCount}
         />
-
-        {/* 2FA Protected Admin Switcher */}
-        <button
-          onClick={() => {
-            if (is2FAVerified) {
-              setCurrentTab('overview');
-            } else {
-              setShow2FAModal(true);
-            }
-          }}
-          className="fixed bottom-6 right-6 z-40 px-4 py-2.5 rounded-full bg-charcoal-800 hover:bg-charcoal-700 border border-charcoal-600 text-xs font-semibold text-white shadow-2xl flex items-center gap-2 transition"
-        >
-          <span>Admin Control Center (2FA Protected)</span>
-          <span className={`w-2 h-2 rounded-full ${is2FAVerified ? 'bg-emerald-500' : 'bg-amber-400 animate-pulse'}`} />
-        </button>
 
         {show2FAModal && (
           <Admin2FAGate

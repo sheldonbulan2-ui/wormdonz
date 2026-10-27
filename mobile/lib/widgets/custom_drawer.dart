@@ -39,20 +39,29 @@ class _CustomDrawerState extends State<CustomDrawer> {
     widget.onNewChat();
   }
 
-  void _showReferralModal() {
+  void _showReferralModal() async {
     Navigator.of(context).pop();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final refLink = 'https://wormdonz.onrender.com/invite?ref=${widget.currentUser.id}';
+
+    // Fetch live referral profile from backend
+    final refData = await ApiService.getReferralProfile(widget.currentUser.id);
+    final String myCode = refData['referralCode'] ?? 'WORM-${widget.currentUser.id.substring(0, 5).toUpperCase()}';
+    final String refLink = refData['referralLink'] ?? 'https://wormdonz.onrender.com?ref=$myCode';
+    final int successfulInvites = refData['successfulInvites'] ?? 0;
+    final int totalEarned = refData['totalCreditsEarned'] ?? 0;
+
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: isDark ? const Color(0xFF141416) : Colors.white,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
         return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
+          padding: EdgeInsets.fromLTRB(24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 36),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,7 +76,7 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
               Row(
                 children: const [
                   Icon(Icons.card_giftcard_rounded, color: Color(0xFF0A84FF), size: 26),
@@ -81,45 +90,68 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(
-                'Share your referral link. You and your friend each receive 50 bonus credits when they sign up and verify.',
+                'Share your unique code or link with friends. Both of you receive +10 Bonus Credits as soon as they verify their account!',
                 style: TextStyle(
                   color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF636366),
-                  fontSize: 13,
+                  fontSize: 12.5,
                   height: 1.4,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+
+              // Unique Code Card
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFE5E5EA)),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF0A84FF).withOpacity(0.35)),
                 ),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.between,
                   children: [
-                    Expanded(
-                      child: Text(
-                        refLink,
-                        style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
-                          fontSize: 12.5,
-                          fontFamily: 'monospace',
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'YOUR INVITATION CODE',
+                          style: TextStyle(
+                            fontSize: 10,
+                            letterSpacing: 1.0,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF636366),
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                        const SizedBox(height: 4),
+                        Text(
+                          myCode,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'monospace',
+                            color: Color(0xFF00F5A0),
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.copy_rounded, color: Color(0xFF0A84FF), size: 20),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.copy_rounded, size: 14),
+                      label: const Text('Copy Code'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0A84FF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
                       onPressed: () {
-                        Clipboard.setData(ClipboardData(text: refLink));
-                        Navigator.pop(ctx);
+                        Clipboard.setData(ClipboardData(text: myCode));
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('🎉 Sharable referral link copied to clipboard!'),
+                          SnackBar(
+                            content: Text('🎉 Invitation code $myCode copied to clipboard!'),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -128,29 +160,77 @@ class _CustomDrawerState extends State<CustomDrawer> {
                   ],
                 ),
               ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.share_rounded, size: 18),
-                  label: const Text('Copy & Share Link'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0A84FF),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: refLink));
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('🎉 Sharable referral link copied to clipboard!'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
+
+              const SizedBox(height: 12),
+
+              // Referral Link Container
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF141416) : const Color(0xFFE5E5EA),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: isDark ? const Color(0xFF2C2C2E) : const Color(0xFFD1D1D6)),
                 ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        refLink,
+                        style: TextStyle(
+                          color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF3A3A3C),
+                          fontSize: 11.5,
+                          fontFamily: 'monospace',
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.share_rounded, color: Color(0xFF0A84FF), size: 18),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: refLink));
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('🔗 Sharable invite link copied! Send it to your friends.'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Referral Earnings Summary Pill
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00F5A0).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF00F5A0).withOpacity(0.2)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Successful Invites: $successfulInvites',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87),
+                    ),
+                    Text(
+                      'Earned: +$totalEarned Credits',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF00F5A0)),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 10),
+              Text(
+                '🛡️ Anti-Farming Shield: Self-referrals and duplicate device installations are blocked automatically.',
+                style: TextStyle(fontSize: 10.5, color: Colors.grey.shade500, height: 1.3),
               ),
             ],
           ),

@@ -22,6 +22,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final TextEditingController _confirmPassController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
   final TextEditingController _telegramController = TextEditingController();
+  final TextEditingController _referralController = TextEditingController();
 
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -43,6 +44,7 @@ class _AuthScreenState extends State<AuthScreen> {
     _confirmPassController.dispose();
     _otpController.dispose();
     _telegramController.dispose();
+    _referralController.dispose();
     super.dispose();
   }
 
@@ -114,6 +116,7 @@ class _AuthScreenState extends State<AuthScreen> {
         username: username,
         email: email,
         password: password,
+        referralCode: _referralController.text.trim().toUpperCase(),
       );
 
       if (!mounted) return;
@@ -534,6 +537,13 @@ class _AuthScreenState extends State<AuthScreen> {
                           hint: 'Re-enter your password',
                           icon: Icons.lock_reset_rounded,
                           obscureText: _obscurePassword,
+                        ),
+                        const SizedBox(height: 14),
+                        _buildInputField(
+                          controller: _referralController,
+                          label: 'Invitation Code (Optional +10 Credits)',
+                          hint: 'e.g. WORM-XXXX',
+                          icon: Icons.card_giftcard_rounded,
                         ),
                         const SizedBox(height: 20),
 

@@ -19,6 +19,10 @@ export interface User {
   avatar_url?: string;
   credits: number;
   tier: UserTier;
+  referral_code: string;
+  referred_by?: string;
+  registration_ip?: string;
+  device_id?: string;
   image_used_lifetime: number;
   image_used_today: number;
   last_image_upload_date?: string;
@@ -32,6 +36,9 @@ export interface PendingRegistration {
   email: string;
   password_hash: string;
   otp: string;
+  referral_code_used?: string;
+  registration_ip?: string;
+  device_id?: string;
   expires_at: number;
 }
 
@@ -134,6 +141,19 @@ export interface FeedbackItem {
   updated_at: string;
 }
 
+export interface ReferralRecord {
+  id: string;
+  inviter_id: string;
+  invited_user_id: string;
+  referral_code: string;
+  credits_awarded: number;
+  status: 'rewarded' | 'flagged_farming' | 'pending';
+  flag_reason?: string;
+  ip_address?: string;
+  device_id?: string;
+  created_at: string;
+}
+
 // In-Memory Repository with TiDB Synchronization
 class DatabaseStore {
   public users: Map<string, User> = new Map();
@@ -147,6 +167,7 @@ class DatabaseStore {
   public pendingRegistrations: Map<string, PendingRegistration> = new Map();
   public passwordResets: Map<string, PasswordResetRequest> = new Map();
   public feedbackItems: Map<string, FeedbackItem> = new Map();
+  public referrals: Map<string, ReferralRecord> = new Map();
 
   constructor() {
     this.seed();
@@ -234,6 +255,7 @@ class DatabaseStore {
       display_name: 'DJ',
       credits: 10,
       tier: 'free',
+      referral_code: 'WORM-001',
       is_banned: false,
       image_used_lifetime: 0,
       image_used_today: 0,
@@ -252,6 +274,7 @@ class DatabaseStore {
       display_name: 'Sheldon Bulan (Owner)',
       credits: 1000,
       tier: 'pro',
+      referral_code: 'WORM-OWNER',
       is_banned: false,
       image_used_lifetime: 0,
       image_used_today: 0,

@@ -102,3 +102,40 @@ exports.userRouter.get('/feedback/:userId', (req, res) => {
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     res.json({ feedback: items });
 });
+/**
+ * Get User's Referral Profile, Unique Code, and Earnings Telemetry
+ */
+exports.userRouter.get('/referral/:userId', (req, res) => {
+    const { userId } = req.params;
+    const user = db_1.db.users.get(userId);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    // Ensure user has a referral code
+    if (!user.referral_code) {
+        user.referral_code = 'WORM-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+        db_1.db.users.set(userId, user);
+    }
+    const userReferrals = Array.from(db_1.db.referrals.values()).filter(r => r.inviter_id === userId);
+    const rewardedReferrals = userReferrals.filter(r => r.status === 'rewarded');
+    const flaggedCount = userReferrals.filter(r => r.status === 'flagged_farming').length;
+    res.json({
+        referralCode: user.referral_code,
+        referralLink: `https://wormdonz.onrender.com?ref=${user.referral_code}`,
+        totalInvited: userReferrals.length,
+        successfulInvites: rewardedReferrals.length,
+        flaggedFarmingCount: flaggedCount,
+        totalCreditsEarned: rewardedReferrals.reduce((acc, r) => acc + r.credits_awarded, 0),
+        referrals: userReferrals.map(r => {
+            const invitee = db_1.db.users.get(r.invited_user_id);
+            return {
+                id: r.id,
+                inviteeUsername: invitee ? invitee.username : 'Anonymous User',
+                status: r.status,
+                flagReason: r.flag_reason,
+                creditsAwarded: r.credits_awarded,
+                createdAt: r.created_at
+            };
+        })
+    });
+});

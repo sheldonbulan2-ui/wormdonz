@@ -87,15 +87,35 @@ class ApiService {
   static const String _prefUserSessionKey = 'wormdonz_current_user_session';
   static const String defaultUserId = 'user-001';
 
-  /// Register with Username, Gmail, and Password (Triggers Brevo OTP email)
+  /// Get or generate unique hardware/device identifier for anti-farming protection
+  static Future<String> getOrCreateDeviceId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? deviceId = prefs.getString('wmdz_device_id');
+      if (deviceId == null || deviceId.isEmpty) {
+        deviceId = 'dev_${DateTime.now().millisecondsSinceEpoch}_${DateTime.now().microsecond}';
+        await prefs.setString('wmdz_device_id', deviceId);
+      }
+      return deviceId;
+    } catch (_) {
+      return 'dev_fallback_${DateTime.now().millisecondsSinceEpoch}';
+    }
+  }
+
+  /// Register with Username, Gmail, Password and Optional Invitation Code (+10 Credits)
   static Future<Map<String, dynamic>> registerWithEmail({
     required String username,
     required String email,
     required String password,
+    String? referralCode,
   }) async {
     final cleanUsername = username.trim();
     final cleanEmail = email.trim().toLowerCase();
     final cleanPass = password.trim();
+    final cleanRef = (referralCode != null && referralCode.trim().isNotEmpty)
+        ? referralCode.trim().toUpperCase()
+        : null;
+    final deviceId = await getOrCreateDeviceId();
 
     try {
       final res = await http.post(
@@ -105,6 +125,8 @@ class ApiService {
           'username': cleanUsername,
           'email': cleanEmail,
           'password': cleanPass,
+          'referralCode': cleanRef,
+          'deviceId': deviceId,
         }),
       ).timeout(const Duration(seconds: 35));
 
@@ -115,6 +137,7 @@ class ApiService {
           'message': data['message'] ?? 'Verification code sent to $cleanEmail',
           'email': cleanEmail,
           'username': cleanUsername,
+          'referralApplied': data['referralApplied'] ?? false,
           'previewOtp': data['previewOtp'],
         };
       } else {
@@ -848,6 +871,24 @@ class ApiService {
       return {'success': false, 'error': data['error'] ?? 'Submission failed.'};
     } catch (e) {
       return {'success': false, 'error': 'Network error submitting feedback: $e'};
+    }
+  }
+
+  /// Get User's Unique Referral Code, Link, and Invited Friends Stats
+  static Future<Map<String, dynamic>> getReferralProfile(String userId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/user/referral/$userId'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(const Duration(seconds: 15));
+
+      if (res.statusCode == 200) {
+        return jsonDecode(res.body);
+      }
+      return {};
+    } catch (e) {
+      debugPrint('[ApiService] Error fetching referral profile: $e');
+      return {};
     }
   }
 }

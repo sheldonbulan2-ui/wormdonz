@@ -18,6 +18,7 @@ class DatabaseStore {
     pendingRegistrations = new Map();
     passwordResets = new Map();
     feedbackItems = new Map();
+    referrals = new Map();
     constructor() {
         this.seed();
     }
@@ -101,6 +102,7 @@ class DatabaseStore {
             display_name: 'DJ',
             credits: 10,
             tier: 'free',
+            referral_code: 'WORM-001',
             is_banned: false,
             image_used_lifetime: 0,
             image_used_today: 0,
@@ -118,6 +120,7 @@ class DatabaseStore {
             display_name: 'Sheldon Bulan (Owner)',
             credits: 1000,
             tier: 'pro',
+            referral_code: 'WORM-OWNER',
             is_banned: false,
             image_used_lifetime: 0,
             image_used_today: 0,

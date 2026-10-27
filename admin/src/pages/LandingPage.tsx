@@ -28,6 +28,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [apiLatency, setApiLatency] = useState<number | null>(null);
   const [apiStatus, setApiStatus] = useState<'checking' | 'connected' | 'offline'>('checking');
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [copiedRef, setCopiedRef] = useState(false);
   
   // Interactive Phone Demo State
   const [demoInput, setDemoInput] = useState('');
@@ -41,6 +43,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
 
   useEffect(() => {
     checkApiConnection();
+    // Parse ?ref= from URL query params
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      setReferralCode(ref.trim().toUpperCase());
+    }
   }, []);
 
   const checkApiConnection = async () => {
@@ -100,21 +108,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
         </div>
 
         {/* Live REST API status pill */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-charcoal-800 border border-charcoal-700 text-xs">
             <span className={`w-2 h-2 rounded-full ${apiStatus === 'connected' ? 'bg-emerald-500 animate-pulse' : (apiStatus === 'checking' ? 'bg-amber-400' : 'bg-rose-500')}`} />
             <span className="text-neutral-300 font-mono text-[11px]">
               REST API: {apiStatus === 'connected' ? `Online (${apiLatency}ms)` : (apiStatus === 'checking' ? 'Connecting...' : 'Local Sandbox')}
             </span>
           </div>
-
-          <button
-            onClick={onEnterDashboard}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-charcoal-800 hover:bg-charcoal-700 border border-charcoal-700 text-xs font-semibold text-white transition"
-          >
-            <span>Admin Control / Login</span>
-            <ArrowRight className="w-3.5 h-3.5 text-electric-400" />
-          </button>
         </div>
       </header>
 
@@ -130,6 +130,40 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
               <Sparkles className="w-3.5 h-3.5" />
               <span>PRODUCTION-READY v1.1.0 AI APP</span>
             </div>
+
+            {/* Special Referral Invite Badge if visitor came via referral link */}
+            {referralCode && (
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-charcoal-800 to-charcoal-800 border border-emerald-500/40 shadow-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Special Invitation Bonus Unlocked
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    +10 FREE CREDITS
+                  </span>
+                </div>
+                <p className="text-xs text-neutral-300 leading-relaxed">
+                  A friend invited you to WormDonz AI! Use this invitation code when creating your account in the APK to claim your extra 10 credits:
+                </p>
+                <div className="flex items-center gap-3 pt-1">
+                  <div className="px-3.5 py-1.5 rounded-xl bg-charcoal-900 border border-emerald-500/40 font-mono text-base font-extrabold text-emerald-300 tracking-wider">
+                    {referralCode}
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(referralCode);
+                      setCopiedRef(true);
+                      setTimeout(() => setCopiedRef(false), 2000);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md transition"
+                  >
+                    {copiedRef ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedRef ? 'Code Copied!' : 'Copy Code'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.1]">
               Pure OLED Black Chat. <br />
@@ -161,24 +195,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
                 </span>
               </div>
 
-              {/* Download Buttons Row */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              {/* Download Button Full Width */}
+              <div className="pt-2">
                 <a
                   href="/api/download/apk"
                   download="wormdonz-ai-v1.1.0.apk"
-                  className="flex-1 flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-electric-500 hover:bg-electric-600 text-white font-bold text-sm shadow-xl shadow-electric-500/30 hover:shadow-electric-500/40 transition duration-150 transform hover:-translate-y-0.5"
+                  className="w-full flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-electric-500 hover:bg-electric-600 text-white font-bold text-base shadow-xl shadow-electric-500/30 hover:shadow-electric-500/40 transition duration-150 transform hover:-translate-y-0.5"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-5 h-5" />
                   <span>Download WormDonz APK (v1.1.0)</span>
                 </a>
-
-                <button
-                  onClick={onEnterDashboard}
-                  className="flex items-center justify-center gap-2 px-5 py-3.5 rounded-2xl bg-charcoal-700 hover:bg-charcoal-600 border border-charcoal-600 text-white font-semibold text-sm transition"
-                >
-                  <span>Admin Control</span>
-                  <ChevronRight className="w-4 h-4 text-neutral-400" />
-                </button>
               </div>
 
               {/* Install Verification Checklist */}
