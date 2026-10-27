@@ -47,7 +47,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
     setApiStatus('checking');
     const start = Date.now();
     try {
-      const res = await fetch('http://localhost:4000/api/system/status');
+      const res = await fetch('/api/system/status');
       if (res.ok) {
         setApiLatency(Date.now() - start);
         setApiStatus('connected');
@@ -164,7 +164,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
               {/* Download Buttons Row */}
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <a
-                  href="http://localhost:4000/api/download/apk"
+                  href="/api/download/apk"
                   download="wormdonz-ai-v1.0.apk"
                   className="flex-1 flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-electric-500 hover:bg-electric-600 text-white font-bold text-sm shadow-xl shadow-electric-500/30 hover:shadow-electric-500/40 transition duration-150 transform hover:-translate-y-0.5"
                 >

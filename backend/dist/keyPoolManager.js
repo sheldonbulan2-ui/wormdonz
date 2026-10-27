@@ -144,7 +144,7 @@ class KeyPoolManager {
             throw new Error(`HTTP 402 Payment Required: Upstream ${key.provider} quota exhausted for key ${key.key_alias}`);
         }
         // Real Google Gemini API Call (Vision & Text)
-        if (key.provider === 'gemini' || key.encrypted_key.startsWith('AIzaSy')) {
+        if (key.provider === 'gemini' || key.encrypted_key.startsWith('AIzaSy') || key.encrypted_key.startsWith('AQ.')) {
             try {
                 const parts = [];
                 const userPrompt = request.messages[request.messages.length - 1]?.content || 'Analyze and describe the attached image.';
@@ -160,7 +160,7 @@ class KeyPoolManager {
                     }
                 }
                 parts.push({ text: userPrompt });
-                const geminiModel = 'gemini-2.0-flash';
+                const geminiModel = 'gemini-3.8-flash';
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${key.encrypted_key}`;
                 const response = await fetch(url, {
                     method: 'POST',

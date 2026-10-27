@@ -1,6 +1,8 @@
 import { OverviewMetrics, ApiKeyItem, RedeemCodeItem, UserItem, SubscriptionPlanItem } from './types';
 
-const BASE_URL = 'http://localhost:4000/api';
+const BASE_URL = typeof window !== 'undefined' && window.location.origin
+  ? `${window.location.origin}/api`
+  : 'http://localhost:4000/api';
 
 const getAuthHeaders = () => {
   const token = sessionStorage.getItem('wmdz_admin_token') || 'wmdz-admin-session-token-valid-2026';

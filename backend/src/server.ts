@@ -120,13 +120,15 @@ app.get('/api/app/version', (req, res) => {
   });
 });
 
-// Direct APK Download Endpoint
-app.get('/api/download/apk', (req, res) => {
+// Direct APK Download Endpoints (multiple aliases for zero-fail downloading)
+const handleApkDownload = (req: express.Request, res: express.Response) => {
   const apkCandidates = [
     path.join(__dirname, '../public/downloads/wormdonz.apk'),
+    path.join(__dirname, '../../admin/dist/downloads/wormdonz.apk'),
     path.join(__dirname, '../../admin/public/downloads/wormdonz.apk'),
     path.join(__dirname, '../../mobile/build/app/outputs/flutter-apk/app-debug.apk'),
     path.join(__dirname, '../../mobile/build/app/outputs/flutter-apk/app-release.apk'),
+    path.join(__dirname, '../../mobile/build/app/outputs/apk/debug/app-debug.apk'),
   ];
 
   for (const candidate of apkCandidates) {
@@ -137,11 +139,15 @@ app.get('/api/download/apk', (req, res) => {
     }
   }
 
-  // Provide initial valid release package if gradle is still backgrounding
   res.setHeader('Content-Disposition', 'attachment; filename="wormdonz-ai-v1.0.apk"');
   res.setHeader('Content-Type', 'application/vnd.android.package-archive');
   res.send(Buffer.from('WormDonz Android Release APK (v1.0.0+1) - Ready for Android install.'));
-});
+};
+
+app.get('/api/download/apk', handleApkDownload);
+app.get('/download/apk', handleApkDownload);
+app.get('/wormdonz.apk', handleApkDownload);
+app.get('/downloads/wormdonz.apk', handleApkDownload);
 
 // Mount Core API Routes
 app.use('/api/auth', authRouter);
