@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "buildCommand": "cd admin && npm install && npm run build",
+  "outputDirectory": "admin/dist",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/downloads/(.*)", "destination": "/downloads/$1" },
+    { "source": "/api/download/apk", "destination": "/downloads/jarvis-x.apk" },
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/downloads/(.*\\.apk)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/vnd.android.package-archive"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"jarvis-x.apk\""
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}

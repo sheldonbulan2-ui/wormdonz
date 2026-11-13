@@ -82,3 +82,70 @@ export interface FeedbackItem {
   created_at: string;
   updated_at: string;
 }
+
+export interface ApkReleaseItem {
+  id: string;
+  version: string;
+  title: string;
+  release_notes: string;
+  download_url: string;
+  file_size_mb: number;
+  sha256_checksum?: string;
+  min_android_version: string;
+  is_active: boolean;
+  download_count: number;
+  created_at: string;
+}
+
+export interface ApkDownloadItem {
+  id: string;
+  release_id?: string;
+  version: string;
+  ip_address?: string;
+  user_agent?: string;
+  device_model?: string;
+  downloaded_at: string;
+}
+
+export interface TelemetryLogItem {
+  id: string;
+  device_id?: string;
+  action_type: string;
+  tool_name: string;
+  status: 'success' | 'failed' | 'executing';
+  details?: string;
+  created_at: string;
+}
+
+export interface SupabaseConfig {
+  url: string;
+  anonKey: string;
+  isConfigured: boolean;
+}
+
+export interface JarvisCommandResponse {
+  status: string;
+  query: string;
+  response: string;
+  toolCall?: {
+    name: string;
+    arguments: Record<string, any>;
+    result?: any;
+  } | null;
+  steps: Array<{ step: string; timestamp: string }>;
+  executionTimeMs: number;
+  mode: string;
+  voiceInput: boolean;
+}
+
+export interface JarvisStatus {
+  name: string;
+  version: string;
+  status: string;
+  voiceActivation: string;
+  wakeWord: string;
+  activeKeysCount: number;
+  toolsLoaded: string[];
+  timestamp: string;
+}
+

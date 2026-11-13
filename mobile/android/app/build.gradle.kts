@@ -16,10 +16,20 @@ android {
 
     defaultConfig {
         applicationId = "com.wormdonz.app.wormdonz"
-        minSdk = flutter.minSdkVersion
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    dependencies {
+        implementation("com.squareup.okhttp3:okhttp:4.12.0")
+        implementation("com.google.code.gson:gson:2.11.0")
+        implementation("androidx.security:security-crypto:1.1.0-alpha06")
+        implementation("androidx.appcompat:appcompat:1.7.0")
+        implementation("com.google.android.material:material:1.12.0")
+        implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+        implementation("androidx.core:core:1.13.1")
     }
 
     buildTypes {

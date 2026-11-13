@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/hudRootLayout"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="6dp">
+
+    <!-- Glowing Cybernetic Orb -->
+    <FrameLayout
+        android:id="@+id/hudOrbContainer"
+        android:layout_width="64dp"
+        android:layout_height="64dp">
+
+        <ImageView
+            android:id="@+id/hudOrbView"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@drawable/bg_orb_idle"
+            android:contentDescription="JARVIS-X Orb" />
+
+        <TextView
+            android:id="@+id/tvOrbLetter"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="J"
+            android:textColor="@color/jarvis_cyan"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </FrameLayout>
+
+    <!-- Dynamic Status Banner -->
+    <LinearLayout
+        android:id="@+id/hudBannerLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_cyber_card"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:layout_marginStart="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tvHudStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="STANDBY"
+            android:textColor="@color/jarvis_cyan"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.05" />
+
+        <TextView
+            android:id="@+id/tvHudDetail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxWidth="220dp"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:text="Ready for voice commands"
+            android:textColor="@color/jarvis_text_primary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+</LinearLayout>

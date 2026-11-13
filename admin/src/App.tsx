@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { OverviewPage } from './pages/OverviewPage';
@@ -8,6 +8,8 @@ import { UsersPage } from './pages/UsersPage';
 import { PlansConfiguratorPage } from './pages/PlansConfiguratorPage';
 import { FeedbackPage } from './pages/FeedbackPage';
 import { AdminAssistantPage } from './pages/AdminAssistantPage';
+import { ApkReleaseManagerPage } from './pages/ApkReleaseManagerPage';
+import { JarvisAiCorePage } from './pages/JarvisAiCorePage';
 import { LandingPage } from './pages/LandingPage';
 import { Admin2FAGate } from './components/Admin2FAGate';
 import { adminApi } from './api';
@@ -168,6 +170,10 @@ export const App: React.FC = () => {
     switch (currentTab) {
       case 'landing':
         return { title: 'Mobile APK Landing & Download Hub', subtitle: 'Public landing page, live mobile emulator preview, and APK binary downloads' };
+      case 'apk':
+        return { title: 'APK Releases & Telemetry Hub', subtitle: 'Manage production APK downloads, Vercel distribution, and Supabase telemetry' };
+      case 'jarvis':
+        return { title: 'J.A.R.V.I.S. AI Core Engine', subtitle: 'Voice-activated holographic Arc Reactor, tool pipeline execution, and Android daemon bridge' };
       case 'assistant':
         return { title: 'Executive AI Copilot', subtitle: 'Real-time telemetry monitoring, proactive platform reminders, and autonomous management' };
       case 'overview':
@@ -229,6 +235,12 @@ export const App: React.FC = () => {
         />
 
         <main className="flex-1 overflow-y-auto p-8 max-w-7xl w-full mx-auto">
+          {currentTab === 'apk' && (
+            <ApkReleaseManagerPage />
+          )}
+          {currentTab === 'jarvis' && (
+            <JarvisAiCorePage />
+          )}
           {currentTab === 'assistant' && (
             <AdminAssistantPage metrics={metrics} feedback={feedback} keys={keys} onNavigate={handleSelectTab} />
           )}

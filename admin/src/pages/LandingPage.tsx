@@ -28,15 +28,20 @@ import {
   RefreshCw,
   Users,
   Award,
-  ShieldAlert
+  ShieldAlert,
+  Sliders,
+  Bell,
+  Eye,
+  Radio
 } from 'lucide-react';
+import { supabaseService } from '../services/supabase';
 
 interface LandingPageProps {
   onEnterDashboard?: () => void;
   activeKeysCount?: number;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = () => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, activeKeysCount }) => {
   // Live ping fluctuation between 18ms and 32ms
   const [ping, setPing] = useState(24);
   const [referralCode, setReferralCode] = useState<string | null>(null);
@@ -86,6 +91,9 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
     setIsDownloading(true);
     setDownloadProgress(10);
 
+    // Track download in Supabase
+    supabaseService.trackDownload('v1.2.0-STABLE');
+
     const interval = setInterval(() => {
       setDownloadProgress((prev) => {
         if (prev >= 90) {
@@ -95,8 +103,8 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
             setDownloadProgress(0);
             // Trigger actual download
             const link = document.createElement('a');
-            link.href = '/api/download/apk';
-            link.download = 'wormdonz-ai-v1.1.0.apk';
+            link.href = '/downloads/jarvis-x.apk';
+            link.download = 'jarvis-x-v1.2.0.apk';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -123,13 +131,23 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
       let replyText = '';
       let snippetCode: string | undefined = undefined;
 
-      if (promptText.toLowerCase().includes('python')) {
+      if (promptText.toLowerCase().includes('flashlight') || promptText.toLowerCase().includes('whatsapp')) {
+        replyText = "⚡ **Autonomous Tool Chain Executed:**\n1. `toggle_hardware(setting='flashlight', state=true)` → Camera Torch ON\n2. `open_app(appName='WhatsApp')` → Intent Launched\n3. `read_screen_context()` → 18 interactive UI elements found on screen.";
+        snippetCode = "{\n  \"action\": \"toggle_hardware\",\n  \"state\": true,\n  \"app_opened\": \"com.whatsapp\",\n  \"active_nodes\": 18\n}";
+      } else if (promptText.toLowerCase().includes('screen') || promptText.toLowerCase().includes('click')) {
+        replyText = "👁️ **Deep UI Automation:**\n• Targeted: Button matching 'Transfer / Send'\n• Action: `click_element('Transfer')`\n• Method: Simulated gesture tap at screen center coordinates `(x: 540, y: 1120)`";
+        snippetCode = "JarvisAccessibilityService.getInstance().clickElement('Transfer');\n// Status: Gesture completed";
+      } else if (promptText.toLowerCase().includes('notification') || promptText.toLowerCase().includes('reply')) {
+        replyText = "💬 **Inline Notification Interceptor:**\n• Found: Incoming WhatsApp message from Mom\n• Response: Sent *'Almost home, driving now'* via `RemoteInput` in background (Zero UI interrupt).";
+      } else if (promptText.toLowerCase().includes('battery') || promptText.toLowerCase().includes('telemetry') || promptText.toLowerCase().includes('ram')) {
+        replyText = "📊 **Android Telemetry Matrix:**\n• Battery: 88% (Discharging)\n• Network: Wi-Fi 5GHz (140 Mbps)\n• Available RAM: 5.2 GB / 12 GB\n• Free Storage: 128.4 GB";
+      } else if (promptText.toLowerCase().includes('timer') || promptText.toLowerCase().includes('alarm')) {
+        replyText = "⏰ **AlarmClock System Intent:**\n• Dispatched: `AlarmClock.ACTION_SET_TIMER` with `EXTRA_LENGTH=300`, `EXTRA_SKIP_UI=true`\n• Result: Countdown started for 5 minutes.";
+      } else if (promptText.toLowerCase().includes('python')) {
         replyText = "Here is the resilient failover router algorithm in Python:";
         snippetCode = "def route_request(key_pool):\n    for key in key_pool:\n        if key.is_healthy():\n            return key.stream_response()\n    raise SystemExit('All keys active')";
-      } else if (promptText.toLowerCase().includes('vision')) {
-        replyText = "🖼️ **Multimodal Vision Analysis Completed:**\n• Image: Mobile UI Blueprint\n• Detected: High-contrast AMOLED `#000000`\n• Optimization: 32% screen power reduction verified.";
       } else {
-        replyText = "✨ WormDonz OLED mode shuts off physical pixels completely on AMOLED displays, giving you maximum battery life and zero eye-strain during late-night development.";
+        replyText = "⚡ JARVIS-X OS Controller is active in foreground. You can command UI clicks, background notification replies, hardware toggles, and voice conversations anytime.";
       }
 
       setMessages((prev) => [
@@ -168,23 +186,23 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Brand Logo & Release Tag */}
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-electric-600 via-electric-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-electric-500/30">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
               <Zap className="w-4 h-4 text-white fill-white" />
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-lg tracking-tight text-white">WormDonz AI</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-electric-500/15 text-electric-400 border border-electric-500/30 font-semibold">
-                v1.1.0 RELEASE APK
+              <span className="font-extrabold text-lg tracking-tight text-white">JARVIS-X</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-semibold">
+                v1.2.0-STABLE APK
               </span>
             </div>
           </div>
 
           {/* Center Navigation Links */}
           <nav className="hidden md:flex items-center space-x-8 text-xs font-semibold text-neutral-400">
-            <a href="#features" className="hover:text-white transition duration-150">Features</a>
-            <a href="#preview" className="hover:text-white transition duration-150">Live Preview</a>
-            <a href="#vision" className="hover:text-white transition duration-150">Vision AI</a>
-            <a href="#referrals" className="hover:text-white transition duration-150">Invitation Rewards</a>
+            <a href="#features" className="hover:text-white transition duration-150">Autonomous OS</a>
+            <a href="#preview" className="hover:text-white transition duration-150">Live Phone HUD</a>
+            <a href="#architecture" className="hover:text-white transition duration-150">Keystore Vault</a>
+            <a href="#install" className="hover:text-white transition duration-150">Install Guide</a>
           </nav>
 
           {/* Right Live Ping Status & Direct Download CTA */}
@@ -193,15 +211,27 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-neutral-300 font-mono text-[11px]">
-                ● AI Engine: <strong className="text-emerald-400 font-bold">Online ({ping}ms)</strong>
+                ● Agent Core: <strong className="text-emerald-400 font-bold">Online ({ping}ms)</strong>
               </span>
             </div>
+
+            {/* Admin Portal Gateway */}
+            {onEnterDashboard && (
+              <button
+                onClick={onEnterDashboard}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-charcoal-800 hover:bg-charcoal-700 text-neutral-300 hover:text-white border border-charcoal-700 text-xs font-medium transition"
+                title="Admin Control Center (or press Ctrl+O then 1-2-3)"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="hidden sm:inline">Admin Portal</span>
+              </button>
+            )}
 
             {/* Quick Action Button */}
             <button
               onClick={handleDownloadClick}
               disabled={isDownloading}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-electric-500 hover:bg-electric-600 text-white text-xs font-bold shadow-lg shadow-electric-500/25 transition duration-150 transform hover:scale-[1.02]"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold shadow-lg shadow-cyan-500/25 transition duration-150 transform hover:scale-[1.02]"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Get APK</span>
@@ -249,23 +279,23 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
           {/* Left Column: Commercial Hero Copy & APK Box */}
           <div className="lg:col-span-7 space-y-7">
             {/* Top Pill Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-electric-500/10 border border-electric-500/30 text-xs text-electric-400 font-semibold shadow-inner">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs text-cyan-400 font-semibold shadow-inner">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>✨ PRODUCTION-READY v1.1.0 AI APP</span>
+              <span>✨ PRODUCTION RELEASE • v1.2.0-STABLE</span>
             </div>
 
             {/* Headline with Metallic Shimmer */}
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.08]">
-              Pure OLED Black Chat. <br />
+              Autonomous Android OS. <br />
               <span className="shimmer-text">
-                Zero-Downtime Failover.
+                Voice-Activated &amp; Unrestricted.
               </span>
             </h1>
 
             {/* Value Proposition Description */}
             <p className="text-base sm:text-lg text-neutral-300 leading-relaxed max-w-xl">
-              Experience the elite minimalist WormDonz AI interface in authentic <code className="text-electric-400 font-mono font-bold">#000000</code> OLED black. 
-              Engineered with unrestricted deterministic execution, uninterrupted multi-key failover routing, multimodal vision photo analysis, and instant streaming on any Android device.
+              Experience the next-generation <strong className="text-white">JARVIS-X OS Controller</strong> with deep Android accessibility integration. 
+              Autonomously reads active screen context, clicks controls, injects text, intercepts messaging notifications with background replies, and commands hardware via voice.
             </p>
 
             {/* =========================================================================
@@ -274,21 +304,21 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
             <div className="p-6 rounded-3xl bg-[#121216]/90 border border-white/[0.08] shadow-2xl backdrop-blur-2xl space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25">
                     <Smartphone className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="text-sm font-bold text-white flex items-center gap-2">
-                      WormDonz Android Application
+                      JARVIS-X Android APK Binary
                     </div>
                     <div className="text-xs text-neutral-400 mt-0.5">
-                      Package: <span className="font-mono text-neutral-300">wormdonz-ai-v1.1.0.apk</span> • Size: <span className="text-neutral-300 font-mono">52.4 MB</span> • Android 8.0+
+                      Package: <span className="font-mono text-neutral-300">jarvis-x.apk</span> • Size: <span className="text-neutral-300 font-mono">52.6 MB</span> • Android 8.0+
                     </div>
                   </div>
                 </div>
 
-                <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold w-fit">
-                  RELEASE v1.1.0+2
+                <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-semibold w-fit">
+                  STABLE v1.2.0
                 </span>
               </div>
 
@@ -298,7 +328,7 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
                 <button
                   onClick={handleDownloadClick}
                   disabled={isDownloading}
-                  className="relative flex-1 overflow-hidden flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-electric-500 hover:bg-electric-600 text-white font-extrabold text-sm shadow-xl shadow-electric-500/35 transition duration-150 transform hover:-translate-y-0.5"
+                  className="relative flex-1 overflow-hidden flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-sm shadow-xl shadow-cyan-500/35 transition duration-150 transform hover:-translate-y-0.5"
                 >
                   {/* Sweeping Light-Sheen Animation */}
                   <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none animate-sheen" />
@@ -306,14 +336,14 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
                   {/* Dynamic Progress Bar */}
                   {isDownloading && (
                     <div 
-                      className="absolute left-0 bottom-0 top-0 bg-emerald-500/40 transition-all duration-200" 
+                      className="absolute left-0 bottom-0 top-0 bg-white/40 transition-all duration-200" 
                       style={{ width: `${downloadProgress}%` }}
                     />
                   )}
 
                   <Download className="w-4 h-4 shrink-0 relative z-10" />
                   <span className="relative z-10">
-                    {isDownloading ? `Downloading APK (${downloadProgress}%)...` : 'Download WormDonz APK (v1.1.0)'}
+                    {isDownloading ? `Downloading APK (${downloadProgress}%)...` : 'Download JARVIS-X APK (v1.2.0)'}
                   </span>
                 </button>
 
@@ -759,7 +789,7 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
             <div>
               <h3 className="text-base font-bold text-white">Scan to Install on Mobile</h3>
               <p className="text-xs text-neutral-400 mt-1">
-                Point your phone camera to download <code className="text-electric-400 font-mono">wormdonz.apk</code> directly.
+                Point your Android camera to download <code className="text-cyan-400 font-mono">jarvis-x.apk</code> directly.
               </p>
             </div>
 
@@ -767,15 +797,15 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
             <div className="bg-white p-4 rounded-2xl w-fit mx-auto shadow-inner">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                  window.location.origin + '/api/download/apk'
+                  (typeof window !== 'undefined' ? window.location.origin : '') + '/downloads/jarvis-x.apk'
                 )}`}
-                alt="WormDonz APK QR Code"
+                alt="JARVIS-X APK QR Code"
                 className="w-44 h-44 rounded-lg"
               />
             </div>
 
             <div className="text-[11px] text-neutral-400 font-mono">
-              Direct Link: <a href="/api/download/apk" className="text-electric-400 underline">wormdonz.onrender.com/api/download/apk</a>
+              Direct Link: <a href="/downloads/jarvis-x.apk" download className="text-cyan-400 underline">jarvis-x.apk (v1.2.0-STABLE)</a>
             </div>
           </div>
         </div>
@@ -825,31 +855,31 @@ export const LandingPage: React.FC<LandingPageProps> = () => {
       )}
 
       {/* =========================================================================
-          8. CLEAN COMMERCIAL FOOTER (No Admin Buttons)
+          8. CLEAN COMMERCIAL FOOTER (With Direct Admin Portal Trigger)
           ========================================================================= */}
       <footer className="border-t border-white/[0.08] bg-[#0A0A0C] py-12 px-6">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-neutral-500">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-electric-500/20 text-electric-400 flex items-center justify-center font-bold text-xs">
-              W
+            <div className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-xs">
+              J
             </div>
-            <span className="text-neutral-400 font-semibold">WormDonz AI Platform</span>
+            <span className="text-neutral-400 font-semibold">JARVIS-X OS Assistant</span>
             <span>&bull;</span>
-            <span>v1.1.0 Stable Release</span>
+            <span>v1.2.0-STABLE APK</span>
           </div>
 
           <div className="flex items-center gap-6">
-            <a 
-              href="https://t.me/WormDonz" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="hover:text-neutral-300 transition flex items-center gap-1"
-            >
-              <span>Telegram Support: @WormDonz</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
+            {onEnterDashboard && (
+              <button
+                onClick={onEnterDashboard}
+                className="hover:text-cyan-400 text-neutral-400 transition flex items-center gap-1.5 font-mono"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Admin Console</span>
+              </button>
+            )}
             <span>&bull;</span>
-            <span>&copy; 2026 WormDonz AI. All rights reserved.</span>
+            <span>&copy; 2026 JARVIS-X Systems. All rights reserved.</span>
           </div>
         </div>
       </footer>
