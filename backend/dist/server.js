@@ -15,7 +15,6 @@ const redeem_1 = require("./routes/redeem");
 const user_1 = require("./routes/user");
 const admin_1 = require("./routes/admin");
 const auth_1 = require("./routes/auth");
-const jarvis_1 = require("./routes/jarvis");
 const keyPoolManager_1 = require("./keyPoolManager");
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4000;
@@ -126,32 +125,27 @@ app.get('/api/app/version', (req, res) => {
 // Direct APK Download Endpoints (multiple aliases for zero-fail downloading)
 const handleApkDownload = (req, res) => {
     const apkCandidates = [
-        path_1.default.join(__dirname, '../public/downloads/jarvis-x.apk'),
-        path_1.default.join(__dirname, '../../admin/dist/downloads/jarvis-x.apk'),
-        path_1.default.join(__dirname, '../../admin/public/downloads/jarvis-x.apk'),
         path_1.default.join(__dirname, '../public/downloads/wormdonz.apk'),
         path_1.default.join(__dirname, '../../admin/dist/downloads/wormdonz.apk'),
         path_1.default.join(__dirname, '../../admin/public/downloads/wormdonz.apk'),
+        path_1.default.join(__dirname, '../../mobile/build/app/outputs/flutter-apk/app-release.apk'),
         path_1.default.join(__dirname, '../../mobile/build/app/outputs/flutter-apk/app-debug.apk'),
         path_1.default.join(__dirname, '../../mobile/build/app/outputs/apk/debug/app-debug.apk'),
-        path_1.default.join(__dirname, '../../mobile/build/app/outputs/flutter-apk/app-release.apk'),
     ];
     for (const candidate of apkCandidates) {
         if (fs_1.default.existsSync(candidate)) {
-            res.setHeader('Content-Disposition', 'attachment; filename="jarvis-x-v1.2.0.apk"');
+            res.setHeader('Content-Disposition', 'attachment; filename="wormdonz-ai-v1.1.0.apk"');
             res.setHeader('Content-Type', 'application/vnd.android.package-archive');
             return res.sendFile(candidate);
         }
     }
-    res.setHeader('Content-Disposition', 'attachment; filename="jarvis-x-v1.2.0.apk"');
+    res.setHeader('Content-Disposition', 'attachment; filename="wormdonz-ai-v1.1.0.apk"');
     res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-    res.send(Buffer.from('JARVIS-X Android Release APK (v1.2.0-STABLE) - Ready for Android install.'));
+    res.send(Buffer.from('WormDonz Android Release APK (v1.1.0+2) - Ready for Android install.'));
 };
 app.get('/api/download/apk', handleApkDownload);
 app.get('/download/apk', handleApkDownload);
-app.get('/jarvis-x.apk', handleApkDownload);
 app.get('/wormdonz.apk', handleApkDownload);
-app.get('/downloads/jarvis-x.apk', handleApkDownload);
 app.get('/downloads/wormdonz.apk', handleApkDownload);
 // Mount Core API Routes
 app.use('/api/auth', auth_1.authRouter);
@@ -159,7 +153,6 @@ app.use('/api/chat', chat_1.chatRouter);
 app.use('/api/redeem', redeem_1.redeemRouter);
 app.use('/api/user', user_1.userRouter);
 app.use('/api/admin', admin_1.adminRouter);
-app.use('/api/jarvis', jarvis_1.jarvisRouter);
 // Serve Admin Panel & APK Landing Page from frontend build if available
 const adminDistDir = path_1.default.join(__dirname, '../../admin/dist');
 if (fs_1.default.existsSync(adminDistDir)) {

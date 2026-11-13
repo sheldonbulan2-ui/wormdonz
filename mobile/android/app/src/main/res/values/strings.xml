@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">JARVIS-X</string>
-    <string name="accessibility_service_name">JARVIS-X Autonomous OS Automation</string>
-    <string name="accessibility_service_description">Enables JARVIS-X to autonomously read screen elements, click controls, input text, and perform system navigation on your command.</string>
-    <string name="notification_service_name">JARVIS-X Notification Interceptor</string>
-    <string name="voice_service_name">JARVIS-X Voice HUD</string>
-</resources>

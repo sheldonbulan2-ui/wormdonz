@@ -1,4 +1,4 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 .pnp
 .pnp.js
@@ -40,10 +40,6 @@ mobile/build/
 *.apk
 !backend/public/downloads/wormdonz.apk
 !admin/dist/downloads/wormdonz.apk
-!admin/dist/downloads/jarvis-x.apk
-!admin/public/downloads/wormdonz.apk
-!admin/public/downloads/jarvis-x.apk
-!backend/public/downloads/jarvis-x.apk
 !backend/public/downloads/README.md
 
 # Local DB migration scripts

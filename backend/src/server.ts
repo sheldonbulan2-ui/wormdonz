@@ -10,7 +10,6 @@ import { redeemRouter } from './routes/redeem';
 import { userRouter } from './routes/user';
 import { adminRouter } from './routes/admin';
 import { authRouter } from './routes/auth';
-import { jarvisRouter } from './routes/jarvis';
 import { keyPoolManager } from './keyPoolManager';
 
 const app = express();
@@ -133,35 +132,30 @@ app.get('/api/app/version', (req, res) => {
 // Direct APK Download Endpoints (multiple aliases for zero-fail downloading)
 const handleApkDownload = (req: express.Request, res: express.Response) => {
   const apkCandidates = [
-    path.join(__dirname, '../public/downloads/jarvis-x.apk'),
-    path.join(__dirname, '../../admin/dist/downloads/jarvis-x.apk'),
-    path.join(__dirname, '../../admin/public/downloads/jarvis-x.apk'),
     path.join(__dirname, '../public/downloads/wormdonz.apk'),
     path.join(__dirname, '../../admin/dist/downloads/wormdonz.apk'),
     path.join(__dirname, '../../admin/public/downloads/wormdonz.apk'),
+    path.join(__dirname, '../../mobile/build/app/outputs/flutter-apk/app-release.apk'),
     path.join(__dirname, '../../mobile/build/app/outputs/flutter-apk/app-debug.apk'),
     path.join(__dirname, '../../mobile/build/app/outputs/apk/debug/app-debug.apk'),
-    path.join(__dirname, '../../mobile/build/app/outputs/flutter-apk/app-release.apk'),
   ];
 
   for (const candidate of apkCandidates) {
     if (fs.existsSync(candidate)) {
-      res.setHeader('Content-Disposition', 'attachment; filename="jarvis-x-v1.2.0.apk"');
+      res.setHeader('Content-Disposition', 'attachment; filename="wormdonz-ai-v1.1.0.apk"');
       res.setHeader('Content-Type', 'application/vnd.android.package-archive');
       return res.sendFile(candidate);
     }
   }
 
-  res.setHeader('Content-Disposition', 'attachment; filename="jarvis-x-v1.2.0.apk"');
+  res.setHeader('Content-Disposition', 'attachment; filename="wormdonz-ai-v1.1.0.apk"');
   res.setHeader('Content-Type', 'application/vnd.android.package-archive');
-  res.send(Buffer.from('JARVIS-X Android Release APK (v1.2.0-STABLE) - Ready for Android install.'));
+  res.send(Buffer.from('WormDonz Android Release APK (v1.1.0+2) - Ready for Android install.'));
 };
 
 app.get('/api/download/apk', handleApkDownload);
 app.get('/download/apk', handleApkDownload);
-app.get('/jarvis-x.apk', handleApkDownload);
 app.get('/wormdonz.apk', handleApkDownload);
-app.get('/downloads/jarvis-x.apk', handleApkDownload);
 app.get('/downloads/wormdonz.apk', handleApkDownload);
 
 // Mount Core API Routes
@@ -170,7 +164,6 @@ app.use('/api/chat', chatRouter);
 app.use('/api/redeem', redeemRouter);
 app.use('/api/user', userRouter);
 app.use('/api/admin', adminRouter);
-app.use('/api/jarvis', jarvisRouter);
 
 // Serve Admin Panel & APK Landing Page from frontend build if available
 const adminDistDir = path.join(__dirname, '../../admin/dist');

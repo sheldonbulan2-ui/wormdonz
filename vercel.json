@@ -5,7 +5,7 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/downloads/(.*)", "destination": "/downloads/$1" },
-    { "source": "/api/download/apk", "destination": "/downloads/jarvis-x.apk" },
+    { "source": "/api/download/apk", "destination": "/downloads/wormdonz.apk" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
@@ -19,7 +19,7 @@
         },
         {
           "key": "Content-Disposition",
-          "value": "attachment; filename=\"jarvis-x.apk\""
+          "value": "attachment; filename=\"wormdonz.apk\""
         },
         {
           "key": "Cache-Control",

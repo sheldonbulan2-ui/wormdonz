@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { 
   LayoutDashboard, 
   KeyRound, 
@@ -8,8 +8,6 @@ import {
   ShieldCheck,
   ExternalLink,
   Zap,
-  Smartphone,
-  Cpu,
   LogOut
 } from 'lucide-react';
 
@@ -30,8 +28,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navItems = [
     { id: 'overview', label: 'Executive Dashboard', icon: LayoutDashboard },
-    { id: 'apk', label: 'APK Releases & Telemetry', icon: Smartphone, badge: 'v1.2.0' },
-    { id: 'jarvis', label: 'J.A.R.V.I.S. AI Core', icon: Cpu, badge: 'Voice HUD' },
     { id: 'assistant', label: 'AI Executive Copilot', icon: Zap, badge: 'Live AI' },
     { id: 'feedback', label: 'Bug Reports & Requests', icon: ShieldCheck },
     { id: 'users', label: 'User & Credit Manager', icon: Users },
@@ -43,7 +39,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     { id: 'codes', label: 'Redeem Code Engine', icon: Gift },
     { id: 'plans', label: 'Tier Configurator', icon: Sliders },
-    { id: 'landing', label: 'Public Landing Page', icon: ExternalLink, badge: 'Live' },
   ];
 
   return (

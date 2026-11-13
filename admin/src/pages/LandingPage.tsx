@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Download, 
   Smartphone, 
@@ -17,9 +17,10 @@ import {
   Mic,
   Copy,
   Check,
-  ImageIcon,
+  Image as ImageIcon,
   Sun,
   Moon,
+  MessageSquare,
   Gift,
   X,
   Share2,
@@ -27,29 +28,19 @@ import {
   RefreshCw,
   Users,
   Award,
-  ShieldAlert,
-  Sliders,
-  Bell,
-  Eye,
-  Radio,
-  Volume2,
-  Clock,
-  CloudSun,
-  BookOpen,
-  Code2,
-  Play
+  ShieldAlert
 } from 'lucide-react';
-import { supabaseService } from '../services/supabase';
 
 interface LandingPageProps {
   onEnterDashboard?: () => void;
   activeKeysCount?: number;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, activeKeysCount = 3 }) => {
-  // Live ping fluctuation between 18ms and 28ms
-  const [ping, setPing] = useState(22);
+export const LandingPage: React.FC<LandingPageProps> = () => {
+  // Live ping fluctuation between 18ms and 32ms
+  const [ping, setPing] = useState(24);
   const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [copiedRef, setCopiedRef] = useState(false);
   const [showQrModal, setShowQrModal] = useState(false);
   const [showChangelogModal, setShowChangelogModal] = useState(false);
   
@@ -59,25 +50,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
 
   // Phone Mockup Interactive Demo State
   const [phoneTheme, setPhoneTheme] = useState<'dark' | 'light'>('dark');
+  const [credits, setCredits] = useState(10);
   const [demoInput, setDemoInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [activePrompt, setActivePrompt] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  // Interactive Live Chat Simulator Messages
-  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string; code?: string; tool?: string }>>([
+  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; text: string; code?: string }>>([
     {
       role: 'assistant',
-      text: 'Good day, sir. J.A.R.V.I.S.-X Autonomous OS Core is online. All 12 open-source neural modules and Android device controllers are standing by.',
-      tool: 'system_init'
+      text: 'Hello! I am **WormDonz AI** running live with zero-queue failover. How can I assist you right now?'
     }
   ]);
 
   // Handle dynamic ping simulation
   useEffect(() => {
     const interval = setInterval(() => {
-      setPing(Math.floor(18 + Math.random() * 12));
-    }, 2500);
+      setPing(Math.floor(18 + Math.random() * 14));
+    }, 2800);
     return () => clearInterval(interval);
   }, []);
 
@@ -90,14 +80,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
     } catch (_) {}
   }, []);
 
-  // Download Trigger with Progress Animation & Supabase Tracking
+  // Download Trigger with Progress Animation
   const handleDownloadClick = (e: React.MouseEvent) => {
     if (isDownloading) return;
     setIsDownloading(true);
-    setDownloadProgress(15);
-
-    // Track download in Supabase
-    supabaseService.trackDownload('v1.2.0-STABLE');
+    setDownloadProgress(10);
 
     const interval = setInterval(() => {
       setDownloadProgress((prev) => {
@@ -108,22 +95,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
             setDownloadProgress(0);
             // Trigger actual download
             const link = document.createElement('a');
-            link.href = '/downloads/jarvis-x.apk';
-            link.download = 'jarvis-x-v1.2.0.apk';
+            link.href = '/api/download/apk';
+            link.download = 'wormdonz-ai-v1.1.0.apk';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-          }, 350);
+          }, 400);
           return 100;
         }
         return prev + 25;
       });
-    }, 150);
+    }, 180);
   };
 
   // Interactive In-Phone Demo Prompts
   const handleSendPrompt = (promptText: string) => {
-    if (isThinking || !promptText.trim()) return;
+    if (isThinking) return;
     setActivePrompt(promptText);
     setDemoInput('');
 
@@ -135,40 +122,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
     setTimeout(() => {
       let replyText = '';
       let snippetCode: string | undefined = undefined;
-      let toolName = 'general_nlp';
-      const clean = promptText.toLowerCase();
 
-      if (clean.includes('flashlight') || clean.includes('torch') || clean.includes('whatsapp')) {
-        toolName = 'toggle_hardware + open_app';
-        replyText = "Camera torch activated via CameraManager, and WhatsApp intent dispatched. 24 interactive UI nodes parsed on screen.";
-        snippetCode = "{\n  \"status\": \"success\",\n  \"torch_mode\": true,\n  \"foreground_app\": \"com.whatsapp\",\n  \"screen_nodes\": 24\n}";
-      } else if (clean.includes('weather')) {
-        toolName = 'weather_telemetry';
-        replyText = "Atmospheric telemetry for Manila: 28°C (82°F) with clear skies. Humidity is at 68%, winds northeast at 12 km/h.";
-        snippetCode = "{\n  \"location\": \"Manila\",\n  \"temp_c\": 28,\n  \"condition\": \"Clear\",\n  \"humidity\": \"68%\"\n}";
-      } else if (clean.includes('calculate') || clean.includes('math') || clean.includes('matrix')) {
-        toolName = 'calculate_engine';
-        replyText = "The computed result for (1024 * 768) / 60 is 13,107.2 frames per second equivalent, sir.";
-        snippetCode = "const result = Function('return (1024 * 768) / 60')();\n// Output: 13107.2";
-      } else if (clean.includes('wikipedia') || clean.includes('who is')) {
-        toolName = 'wikipedia_rest_api';
-        replyText = "Anthony Edward 'Tony' Stark is a fictional character portrayed by Robert Downey Jr. in the Marvel Cinematic Universe franchise.";
-        snippetCode = "{\n  \"title\": \"Tony Stark\",\n  \"source\": \"Wikipedia REST API\",\n  \"status\": \"verified\"\n}";
-      } else if (clean.includes('notification') || clean.includes('reply')) {
-        toolName = 'reply_to_notification';
-        replyText = "Inline message from Mom detected on WhatsApp: Sent reply 'On my way home now' silently in background via RemoteInput.";
-        snippetCode = "JarvisNotificationService.reply('Mom', 'On my way home now');";
-      } else if (clean.includes('battery') || clean.includes('telemetry') || clean.includes('ram')) {
-        toolName = 'get_telemetry';
-        replyText = "System Telemetry: Battery 91% (Discharging), RAM load 4.8 GB / 12 GB, 3 active AI failover keys synchronized with 4ms latency.";
-        snippetCode = "{\n  \"battery\": 91,\n  \"ram_free_mb\": 7420,\n  \"active_keys\": 3,\n  \"bus_latency_ms\": 4\n}";
-      } else if (clean.includes('music') || clean.includes('play')) {
-        toolName = 'youtube_music_stream';
-        replyText = "Initializing AC/DC - Back in Black media pipeline on connected device stream, sir.";
-        snippetCode = "{\n  \"stream\": \"https://music.youtube.com/search?q=Back+in+Black\",\n  \"action\": \"playback_ready\"\n}";
+      if (promptText.toLowerCase().includes('python')) {
+        replyText = "Here is the resilient failover router algorithm in Python:";
+        snippetCode = "def route_request(key_pool):\n    for key in key_pool:\n        if key.is_healthy():\n            return key.stream_response()\n    raise SystemExit('All keys active')";
+      } else if (promptText.toLowerCase().includes('vision')) {
+        replyText = "🖼️ **Multimodal Vision Analysis Completed:**\n• Image: Mobile UI Blueprint\n• Detected: High-contrast AMOLED `#000000`\n• Optimization: 32% screen power reduction verified.";
       } else {
-        replyText = "Command acknowledged, sir. Autonomous agent loop standing by to execute downstream instructions.";
-        snippetCode = "{\n  \"query\": \"" + promptText + "\",\n  \"status\": \"executed\"\n}";
+        replyText = "✨ WormDonz OLED mode shuts off physical pixels completely on AMOLED displays, giving you maximum battery life and zero eye-strain during late-night development.";
       }
 
       setMessages((prev) => [
@@ -176,13 +137,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
         {
           role: 'assistant',
           text: replyText,
-          code: snippetCode,
-          tool: toolName
+          code: snippetCode
         }
       ]);
 
       setIsThinking(false);
-    }, 1100);
+      setCredits((prev) => (prev > 1 ? prev - 1 : 10)); // Deduct credit with animated feedback
+    }, 1200);
   };
 
   const copyToClipboard = (text: string, id: string) => {
@@ -192,589 +153,613 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
   };
 
   return (
-    <div className="min-h-screen bg-[#050811] text-white selection:bg-cyan-500 selection:text-black relative overflow-x-hidden font-sans">
-      {/* Background Perspective Cyber Matrix Grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-35 pointer-events-none" />
+    <div className="min-h-screen bg-oled text-white selection:bg-electric-500 selection:text-white relative overflow-x-hidden">
+      {/* Background Perspective Grid Floor */}
+      <div className="absolute inset-0 perspective-grid pointer-events-none opacity-40 z-0 h-[1000px]" />
 
-      {/* Cybernetic Ambient Glow Spots */}
-      <div className="absolute top-0 left-1/4 -translate-x-1/2 w-[700px] h-[450px] bg-cyan-500/10 blur-[160px] rounded-full pointer-events-none z-0" />
-      <div className="absolute top-96 right-10 w-[600px] h-[500px] bg-blue-600/10 blur-[170px] rounded-full pointer-events-none z-0" />
+      {/* Ambient Radial Spotlight Orbs */}
+      <div className="absolute top-10 left-1/4 -translate-x-1/2 w-[600px] h-[450px] bg-electric-500/15 blur-[140px] rounded-full pointer-events-none z-0 animate-orb-1" />
+      <div className="absolute top-96 right-10 w-[500px] h-[500px] bg-cyan-500/10 blur-[150px] rounded-full pointer-events-none z-0 animate-orb-2" />
 
       {/* =========================================================================
-          1. STICKY GLASSMORPHIC NAVBAR (UI/UX Pro Max Spec)
+          1. STICKY GLASSMORPHIC NAVBAR (100% Commercial - Zero Admin Links)
           ========================================================================= */}
-      <header className="sticky top-0 z-50 border-b border-cyan-500/20 bg-[#050811]/85 backdrop-blur-xl px-6 py-3.5 transition-all">
+      <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#0A0A0C]/80 backdrop-blur-xl px-6 py-3.5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          
           {/* Brand Logo & Release Tag */}
-          <div className="flex items-center space-x-3.5">
-            <div className="relative group cursor-pointer">
-              <img 
-                src="/wormdonz-icon.png" 
-                alt="WormDonz JARVIS-X Logo" 
-                className="w-10 h-10 rounded-xl object-cover ring-2 ring-cyan-500/50 shadow-lg shadow-cyan-500/25 group-hover:scale-105 transition-transform"
-              />
-              <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-[#050811] rounded-full animate-pulse" />
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-electric-600 via-electric-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-electric-500/30">
+              <Zap className="w-4 h-4 text-white fill-white" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg tracking-tight text-white font-mono">WORMDONZ</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-bold">
-                  JARVIS-X OS
-                </span>
-              </div>
-              <div className="text-[10px] font-mono text-neutral-400">
-                Autonomous Neural Operating Assistant
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-lg tracking-tight text-white">WormDonz AI</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-electric-500/15 text-electric-400 border border-electric-500/30 font-semibold">
+                v1.1.0 RELEASE APK
+              </span>
             </div>
           </div>
 
           {/* Center Navigation Links */}
-          <nav className="hidden md:flex items-center space-x-7 text-xs font-mono font-medium text-neutral-300">
-            <a href="#features" className="hover:text-cyan-400 transition-colors duration-200 cursor-pointer">
-              [01_OS_AUTOMATION]
-            </a>
-            <a href="#preview" className="hover:text-cyan-400 transition-colors duration-200 cursor-pointer">
-              [02_VOICE_HUD]
-            </a>
-            <a href="#jarvis-core" className="hover:text-cyan-400 transition-colors duration-200 cursor-pointer">
-              [03_NEURAL_TOOLS]
-            </a>
-            <a href="#install" className="hover:text-cyan-400 transition-colors duration-200 cursor-pointer">
-              [04_APK_INSTALL]
-            </a>
+          <nav className="hidden md:flex items-center space-x-8 text-xs font-semibold text-neutral-400">
+            <a href="#features" className="hover:text-white transition duration-150">Features</a>
+            <a href="#preview" className="hover:text-white transition duration-150">Live Preview</a>
+            <a href="#vision" className="hover:text-white transition duration-150">Vision AI</a>
+            <a href="#referrals" className="hover:text-white transition duration-150">Invitation Rewards</a>
           </nav>
 
-          {/* Right Live Telemetry & Direct Download CTA */}
+          {/* Right Live Ping Status & Direct Download CTA */}
           <div className="flex items-center gap-3">
-            {/* Live Fluctuating Telemetry */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-950/40 border border-cyan-800/40 text-xs font-mono">
+            {/* Live Fluctuating Ping */}
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-neutral-300 text-[11px]">
-                BUS: <strong className="text-emerald-400">{ping}ms</strong>
+              <span className="text-neutral-300 font-mono text-[11px]">
+                ● AI Engine: <strong className="text-emerald-400 font-bold">Online ({ping}ms)</strong>
               </span>
             </div>
 
-            {/* Admin Portal Stealth Trigger */}
-            {onEnterDashboard && (
-              <button
-                onClick={onEnterDashboard}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-charcoal-800 hover:bg-charcoal-700 text-neutral-300 hover:text-white border border-charcoal-700 text-xs font-mono font-semibold transition cursor-pointer"
-                title="Admin Control Center (or press Ctrl+O then 1-2-3)"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="hidden sm:inline">Admin Gate</span>
-              </button>
-            )}
-
-            {/* Download Button */}
+            {/* Quick Action Button */}
             <button
               onClick={handleDownloadClick}
               disabled={isDownloading}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black text-xs font-bold font-mono shadow-lg shadow-cyan-500/25 transition duration-150 transform hover:scale-[1.02] cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-electric-500 hover:bg-electric-600 text-white text-xs font-bold shadow-lg shadow-electric-500/25 transition duration-150 transform hover:scale-[1.02]"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>GET APK</span>
+              <span>Get APK</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* =========================================================================
-          2. HERO SECTION: DUAL COLUMN WITH HOLO-HUD TELEMETRY
+          2. HERO SECTION & COMMERCIAL DOWNLOAD CARD
           ========================================================================= */}
-      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-10 pb-20">
-        
+      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-12 pb-24">
         {/* Referral Welcome Banner if visitor arrived via ?ref=CODE */}
         {referralCode && (
-          <div className="mb-8 p-4 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-charcoal-800 to-charcoal-900 border border-cyan-500/40 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="mb-8 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-charcoal-800 to-charcoal-900 border border-emerald-500/40 shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
                 <Gift className="w-5 h-5" />
               </div>
               <div>
-                <div className="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider">
-                  Referral Uplink Verified
+                <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                  Exclusive Referral Gift Unlocked
                 </div>
                 <div className="text-xs text-neutral-300 mt-0.5">
-                  Invited via node <strong className="font-mono text-cyan-300 font-extrabold">{referralCode}</strong>. 
-                  Install the APK and paste this code upon registration for <strong className="text-white">+10 Bonus Credits</strong>!
+                  You were invited with code <strong className="font-mono text-emerald-300 font-extrabold">{referralCode}</strong>. 
+                  Install the APK and paste this code when registering to claim <strong className="text-white">+10 Bonus Credits</strong>!
                 </div>
               </div>
             </div>
             <button
-              onClick={handleDownloadClick}
-              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold font-mono transition shrink-0 cursor-pointer"
+              onClick={() => {
+                navigator.clipboard.writeText(referralCode);
+                setCopiedRef(true);
+                setTimeout(() => setCopiedRef(false), 2000);
+              }}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg transition flex items-center gap-1.5 shrink-0"
             >
-              CLAIM REWARD
+              {copiedRef ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedRef ? 'Code Copied!' : 'Copy Code'}</span>
             </button>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
-          {/* Left Column: Commercial Pitch & Download Hub */}
-          <div className="lg:col-span-7 space-y-6">
-            
-            {/* Tech Status Pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/60 border border-cyan-500/30 text-xs font-mono">
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-              </span>
-              <span className="text-cyan-400 font-semibold tracking-wider">
-                AUTONOMOUS OS ASSISTANT &bull; v1.2.0-STABLE
-              </span>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-14 items-center">
+          {/* Left Column: Commercial Hero Copy & APK Box */}
+          <div className="lg:col-span-7 space-y-7">
+            {/* Top Pill Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-electric-500/10 border border-electric-500/30 text-xs text-electric-400 font-semibold shadow-inner">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>✨ PRODUCTION-READY v1.1.0 AI APP</span>
             </div>
 
-            {/* Main Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.12]">
-              Complete Android Control.{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-blue-500">
-                Zero Cloud Latency.
+            {/* Headline with Metallic Shimmer */}
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-[1.08]">
+              Pure OLED Black Chat. <br />
+              <span className="shimmer-text">
+                Zero-Downtime Failover.
               </span>
             </h1>
 
-            {/* Subhead with strict 4.5:1+ contrast */}
-            <p className="text-base text-neutral-300 max-w-2xl leading-relaxed">
-              Transform your Android device into a voice-activated autonomous operations hub. JARVIS-X traverses screen elements, clicks UI buttons, types text, responds to notifications in the background, and executes 12 open-source neural tools instantly.
+            {/* Value Proposition Description */}
+            <p className="text-base sm:text-lg text-neutral-300 leading-relaxed max-w-xl">
+              Experience the elite minimalist WormDonz AI interface in authentic <code className="text-electric-400 font-mono font-bold">#000000</code> OLED black. 
+              Engineered with unrestricted deterministic execution, uninterrupted multi-key failover routing, multimodal vision photo analysis, and instant streaming on any Android device.
             </p>
 
-            {/* High-Fidelity Download Station Card */}
-            <div className="p-6 rounded-2xl bg-charcoal-800/80 border border-cyan-500/30 backdrop-blur-xl space-y-4 shadow-2xl relative overflow-hidden">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-charcoal-700/60 pb-3">
+            {/* =========================================================================
+                COMMERCIAL APK DOWNLOAD HUB
+                ========================================================================= */}
+            <div className="p-6 rounded-3xl bg-[#121216]/90 border border-white/[0.08] shadow-2xl backdrop-blur-2xl space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25">
                     <Smartphone className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-white font-mono">jarvis-x-v1.2.0.apk</div>
-                    <div className="text-xs text-neutral-400 font-mono">Android 8.0+ (API 26+) &bull; 54.1 MB</div>
+                    <div className="text-sm font-bold text-white flex items-center gap-2">
+                      WormDonz Android Application
+                    </div>
+                    <div className="text-xs text-neutral-400 mt-0.5">
+                      Package: <span className="font-mono text-neutral-300">wormdonz-ai-v1.1.0.apk</span> • Size: <span className="text-neutral-300 font-mono">52.4 MB</span> • Android 8.0+
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono text-[11px] font-semibold">
-                    SHA-256 VERIFIED
-                  </span>
-                </div>
+
+                <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold w-fit">
+                  RELEASE v1.1.0+2
+                </span>
               </div>
 
               {/* Action Buttons Row */}
               <div className="flex flex-col sm:flex-row gap-3 pt-1">
-                {/* Primary Download Button */}
+                {/* Primary Download Button with Light Sheen Sweep & Progress */}
                 <button
                   onClick={handleDownloadClick}
                   disabled={isDownloading}
-                  className="relative flex-1 overflow-hidden flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-sm font-mono shadow-xl shadow-cyan-500/30 transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer disabled:opacity-75"
+                  className="relative flex-1 overflow-hidden flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl bg-electric-500 hover:bg-electric-600 text-white font-extrabold text-sm shadow-xl shadow-electric-500/35 transition duration-150 transform hover:-translate-y-0.5"
                 >
+                  {/* Sweeping Light-Sheen Animation */}
+                  <div className="absolute inset-0 w-1/3 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none animate-sheen" />
+
+                  {/* Dynamic Progress Bar */}
                   {isDownloading && (
                     <div 
-                      className="absolute left-0 bottom-0 top-0 bg-white/40 transition-all duration-200" 
+                      className="absolute left-0 bottom-0 top-0 bg-emerald-500/40 transition-all duration-200" 
                       style={{ width: `${downloadProgress}%` }}
                     />
                   )}
-                  <Download className="w-4 h-4 relative z-10 shrink-0" />
+
+                  <Download className="w-4 h-4 shrink-0 relative z-10" />
                   <span className="relative z-10">
-                    {isDownloading ? `DOWNLOADING (${downloadProgress}%)...` : 'DOWNLOAD JARVIS-X APK'}
+                    {isDownloading ? `Downloading APK (${downloadProgress}%)...` : 'Download WormDonz APK (v1.1.0)'}
                   </span>
                 </button>
 
                 {/* Secondary Button: Scan QR to Install */}
                 <button
                   onClick={() => setShowQrModal(true)}
-                  className="flex items-center justify-center gap-2 px-5 py-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.12] text-white font-semibold text-xs font-mono transition cursor-pointer"
+                  className="flex items-center justify-center gap-2 px-5 py-4 rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.09] text-white font-semibold text-sm transition"
                 >
-                  <QrCode className="w-4 h-4 text-cyan-400" />
-                  <span>SCAN QR</span>
+                  <QrCode className="w-4 h-4 text-electric-400" />
+                  <span>Scan QR</span>
                 </button>
 
                 {/* Changelog View */}
                 <button
                   onClick={() => setShowChangelogModal(true)}
-                  className="flex items-center justify-center px-4 py-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-neutral-300 hover:text-white text-xs font-mono transition cursor-pointer"
-                  title="Release Notes"
+                  className="flex items-center justify-center px-4 py-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-neutral-300 hover:text-white text-xs font-semibold transition"
+                  title="View Changelog"
                 >
-                  <span>CHANGELOG</span>
+                  <span>v1.1.0 Notes</span>
                 </button>
               </div>
 
-              {/* 3 Trust Checkmarks */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-charcoal-700/60 text-[11px] font-mono text-neutral-300">
+              {/* Trust Badges Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-3 border-t border-white/[0.08] text-[11px] text-neutral-400">
                 <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  <span>Zero Hardcoded Keys (BYOK)</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>10 Free Signup Credits</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  <span>100% Offline Keystore Vault</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>3 Free Vision Uploads</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                  <span>Always-On Floating Voice HUD</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>OLED Black & Light Theme</span>
                 </div>
               </div>
             </div>
 
-            {/* Open Source GitHub Intelligence Highlight */}
-            <div className="p-4 rounded-xl bg-charcoal-900/70 border border-cyan-500/20 flex items-center gap-3.5">
-              <div className="w-9 h-9 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
-                <Code2 className="w-4 h-4" />
+            {/* Email OTP Auth Highlight Card */}
+            <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center gap-3.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <ShieldCheck className="w-4 h-4" />
               </div>
-              <div className="flex-1">
-                <div className="text-xs font-bold text-white font-mono flex items-center gap-2">
-                  <span>Open-Source J.A.R.V.I.S. Core Integrated</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
-                    GitHub Native
+              <div>
+                <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span>High-Speed Email &amp; OTP Verification</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Instant Access
                   </span>
                 </div>
-                <p className="text-xs text-neutral-300 mt-0.5">
-                  Includes Wikipedia lookup, atmospheric weather, YouTube music playback, scientific math engine, and background notification replies.
+                <p className="text-[11px] text-neutral-400 mt-0.5 leading-snug">
+                  Fast, secure signup with 6-digit OTP delivery directly to your inbox. No credit card required.
                 </p>
               </div>
             </div>
-
           </div>
 
-          {/* Right Column: 3D Floating Phone Mockup with Live Auto-Chat */}
+          {/* =========================================================================
+              3. RIGHT COLUMN: 3D FLOATING PHONE MOCKUP WITH LIVE AUTO-CHAT
+              ========================================================================= */}
           <div id="preview" className="lg:col-span-5 flex flex-col items-center">
-            
-            {/* Dark/Light Live Preview Switcher */}
-            <div className="mb-3 flex items-center gap-2 p-1.5 rounded-full bg-white/[0.06] border border-white/[0.09] text-xs font-mono">
+            {/* Phone Dark/Light Live Preview Switcher */}
+            <div className="mb-3 flex items-center gap-2 p-1.5 rounded-full bg-white/[0.06] border border-white/[0.09] text-xs">
               <button
                 onClick={() => setPhoneTheme('dark')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition ${
                   phoneTheme === 'dark' 
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' 
+                    ? 'bg-charcoal-700 text-white shadow-sm' 
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
-                <Moon className="w-3 h-3 text-cyan-400" />
+                <Moon className="w-3 h-3 text-electric-400" />
                 <span>OLED Dark</span>
               </button>
               <button
                 onClick={() => setPhoneTheme('light')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition ${
                   phoneTheme === 'light' 
-                    ? 'bg-white text-black shadow-sm' 
+                    ? 'bg-white text-black shadow-sm font-bold' 
                     : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 <Sun className="w-3 h-3 text-amber-500" />
-                <span>Light HUD</span>
+                <span>Clean Light</span>
               </button>
             </div>
 
-            {/* Mobile Device Frame */}
-            <div className="relative w-full max-w-[340px] aspect-[9/18.5] rounded-[44px] p-3 shadow-2xl transition-all duration-300 bg-gradient-to-b from-neutral-800 via-neutral-900 to-black ring-1 ring-cyan-500/40">
-              
-              {/* Outer Edge Speaker Notch */}
-              <div className="absolute top-5 left-1/2 -translate-x-1/2 w-20 h-4 bg-black rounded-full z-30 flex items-center justify-center">
-                <div className="w-2.5 h-2.5 rounded-full bg-neutral-800 ml-auto mr-2" />
-              </div>
-
-              {/* Inner Screen Surface */}
-              <div className={`w-full h-full rounded-[36px] overflow-hidden flex flex-col relative transition-colors duration-200 ${
-                phoneTheme === 'dark' ? 'bg-[#0B0F19]' : 'bg-[#F4F6FB]'
+            {/* 3D Phone Shell */}
+            <div className="w-[320px] sm:w-[350px] rounded-[44px] p-3.5 bg-gradient-to-b from-[#2C2C32] via-[#1A1A1E] to-[#121214] shadow-[0_30px_90px_rgba(0,0,0,0.95)] border border-white/[0.12] animate-phone-float transition-all">
+              {/* Inner Screen */}
+              <div className={`w-full h-[580px] rounded-[36px] overflow-hidden flex flex-col transition-colors duration-200 ${
+                phoneTheme === 'dark' ? 'bg-[#000000] text-white' : 'bg-[#FAFAFA] text-neutral-900'
               }`}>
-                
-                {/* Phone Status Bar */}
-                <div className={`px-5 pt-3 pb-1 flex items-center justify-between text-[10px] font-mono font-semibold z-20 ${
-                  phoneTheme === 'dark' ? 'text-neutral-400' : 'text-neutral-600'
+                {/* Phone Status Notch Bar */}
+                <div className={`px-6 pt-3 pb-2 flex items-center justify-between text-[11px] font-mono ${
+                  phoneTheme === 'dark' ? 'text-neutral-400 border-b border-white/[0.06]' : 'text-neutral-600 border-b border-black/[0.06]'
                 }`}>
-                  <span>9:41</span>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <span>9:41</span>
+                  </div>
+                  {/* Speaker Notch */}
+                  <div className="w-16 h-3 bg-neutral-800 rounded-full" />
+                  <div className="flex items-center gap-1 text-[10px]">
                     <span>5G</span>
-                    <div className="w-4 h-2 border border-current rounded-sm p-0.5 flex items-center">
-                      <div className="w-2.5 h-full bg-emerald-400 rounded-2xs" />
-                    </div>
+                    <span>100%</span>
                   </div>
                 </div>
 
-                {/* Floating JARVIS Cybernetic Orb Indicator */}
-                <div className={`px-4 py-2 border-b flex items-center justify-between ${
-                  phoneTheme === 'dark' ? 'border-neutral-800 bg-[#0E1524]' : 'border-neutral-200 bg-white'
+                {/* In-App Appbar */}
+                <div className={`px-4 py-2.5 flex items-center justify-between border-b ${
+                  phoneTheme === 'dark' ? 'border-white/[0.06]' : 'border-black/[0.06]'
                 }`}>
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 animate-pulse">
-                      <Zap className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-bold font-mono tracking-tight text-white flex items-center gap-1">
-                        <span>JARVIS-X</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      </div>
-                      <div className="text-[9px] font-mono text-cyan-400">
-                        {isThinking ? 'Processing tool...' : 'Voice HUD Active'}
-                      </div>
-                    </div>
+                    <span className="text-sm font-bold opacity-70">≡</span>
+                    <span className="text-xs font-bold tracking-tight">WormDonz &gt;</span>
                   </div>
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                    BYOK Keystore
-                  </span>
+
+                  {/* Credit Badge Pill */}
+                  <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold">
+                    <Zap className="w-3 h-3 fill-emerald-400" />
+                    <span>⚡ {credits} Credits</span>
+                  </div>
                 </div>
 
                 {/* Chat Scroll View */}
-                <div className="flex-1 p-3 overflow-y-auto space-y-2.5 text-xs font-sans">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
                   {messages.map((m, idx) => (
                     <div 
-                      key={idx}
+                      key={idx} 
                       className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}
                     >
-                      {m.tool && (
-                        <span className="text-[9px] font-mono text-cyan-400 mb-0.5 uppercase">
-                          [{m.tool}]
-                        </span>
-                      )}
-                      <div className={`p-2.5 rounded-2xl max-w-[88%] leading-relaxed ${
+                      <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 leading-relaxed text-xs ${
                         m.role === 'user'
-                          ? 'bg-cyan-600 text-white rounded-br-xs'
+                          ? 'bg-electric-500 text-white rounded-br-none shadow-md shadow-electric-500/20'
                           : phoneTheme === 'dark'
-                            ? 'bg-charcoal-800/90 text-neutral-200 border border-charcoal-700/80 rounded-bl-xs'
-                            : 'bg-white text-neutral-800 shadow-sm rounded-bl-xs'
+                            ? 'bg-[#18181C] text-neutral-200 border border-white/[0.08] rounded-bl-none'
+                            : 'bg-white text-neutral-800 border border-black/[0.08] shadow-sm rounded-bl-none'
                       }`}>
-                        {m.text}
-
-                        {/* Inline Code / Tool Payload */}
+                        <div>{m.text}</div>
                         {m.code && (
-                          <pre className="mt-2 p-1.5 rounded bg-black/50 text-cyan-300 font-mono text-[10px] overflow-x-auto border border-cyan-900/40">
-                            {m.code}
-                          </pre>
+                          <div className="mt-2 p-2 rounded-xl bg-black/80 text-[10px] font-mono text-emerald-300 border border-white/10 relative">
+                            <pre className="overflow-x-auto">{m.code}</pre>
+                            <button
+                              onClick={() => copyToClipboard(m.code!, `snippet-${idx}`)}
+                              className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[9px] text-white"
+                            >
+                              {copiedCode === `snippet-${idx}` ? 'Copied' : 'Copy'}
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
                   ))}
 
+                  {/* Thinking Status Indicator */}
                   {isThinking && (
-                    <div className="flex items-center gap-2 text-[11px] font-mono text-cyan-400 italic">
-                      <RefreshCw className="w-3 h-3 animate-spin text-cyan-400" />
-                      <span>Synthesizing tool chain...</span>
+                    <div className="flex items-center gap-2 text-[11px] text-neutral-400 italic">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                      <span>Thinking via failover pool...</span>
                     </div>
                   )}
                 </div>
 
-                {/* Suggestion Chips (SVG Icons Only - No Emojis) */}
-                <div className="px-3 pb-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[10px] font-mono">
+                {/* Suggestion Pills */}
+                <div className="px-3 pb-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[10px]">
                   <button
-                    onClick={() => handleSendPrompt('Turn on flashlight and open WhatsApp')}
-                    className="px-2.5 py-1 rounded-full bg-white/[0.08] hover:bg-cyan-500/20 border border-white/[0.1] hover:border-cyan-500/40 text-neutral-300 hover:text-cyan-300 shrink-0 flex items-center gap-1 transition cursor-pointer"
+                    onClick={() => handleSendPrompt('Write python code')}
+                    className="px-2.5 py-1 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.08] shrink-0 font-medium transition"
                   >
-                    <Zap className="w-3 h-3 text-cyan-400" />
-                    <span>Flashlight & WhatsApp</span>
+                    🐍 Write python code
                   </button>
                   <button
-                    onClick={() => handleSendPrompt('Weather in Tokyo')}
-                    className="px-2.5 py-1 rounded-full bg-white/[0.08] hover:bg-cyan-500/20 border border-white/[0.1] hover:border-cyan-500/40 text-neutral-300 hover:text-cyan-300 shrink-0 flex items-center gap-1 transition cursor-pointer"
+                    onClick={() => handleSendPrompt('🖼️ Vision upload analysis')}
+                    className="px-2.5 py-1 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.08] shrink-0 font-medium transition"
                   >
-                    <CloudSun className="w-3 h-3 text-amber-400" />
-                    <span>Weather in Tokyo</span>
+                    🖼️ Vision upload
                   </button>
                   <button
-                    onClick={() => handleSendPrompt('Calculate (1024 * 768) / 60')}
-                    className="px-2.5 py-1 rounded-full bg-white/[0.08] hover:bg-cyan-500/20 border border-white/[0.1] hover:border-cyan-500/40 text-neutral-300 hover:text-cyan-300 shrink-0 flex items-center gap-1 transition cursor-pointer"
+                    onClick={() => handleSendPrompt('Explain OLED dark mode')}
+                    className="px-2.5 py-1 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.08] shrink-0 font-medium transition"
                   >
-                    <Code2 className="w-3 h-3 text-emerald-400" />
-                    <span>Calculate Matrix</span>
+                    ⚡ OLED dark mode
                   </button>
                 </div>
 
                 {/* Phone Bottom Input Bar */}
-                <div className={`p-2.5 border-t flex items-center gap-2 ${
-                  phoneTheme === 'dark' ? 'border-neutral-800 bg-[#0B0F19]' : 'border-neutral-200 bg-white'
+                <div className={`p-3 border-t flex items-center gap-2 ${
+                  phoneTheme === 'dark' ? 'border-white/[0.06] bg-[#0E0E10]' : 'border-black/[0.06] bg-[#EDEDF2]'
                 }`}>
-                  <button 
-                    onClick={() => handleSendPrompt('Get battery and RAM telemetry')}
-                    className="text-neutral-400 hover:text-cyan-400 p-1 cursor-pointer"
-                    title="Telemetry Check"
-                  >
-                    <Cpu className="w-4 h-4" />
+                  <button className="text-neutral-400 hover:text-white p-1">
+                    <Plus className="w-4 h-4" />
                   </button>
 
                   <input
                     type="text"
                     value={demoInput}
                     onChange={(e) => setDemoInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendPrompt(demoInput)}
-                    placeholder="Command JARVIS-X..."
-                    className="flex-1 text-[11px] font-mono bg-transparent outline-none px-2 text-white placeholder-neutral-500"
+                    onKeyDown={(e) => e.key === 'Enter' && demoInput.trim() && handleSendPrompt(demoInput)}
+                    placeholder="Ask WormDonz..."
+                    className={`flex-1 text-[11px] bg-transparent outline-none px-2 ${
+                      phoneTheme === 'dark' ? 'text-white placeholder-neutral-500' : 'text-black placeholder-neutral-400'
+                    }`}
                   />
 
+                  {/* Send Button with Rotating Red Arc Spinner when Thinking */}
                   <button
-                    onClick={() => handleSendPrompt(demoInput)}
-                    disabled={isThinking || !demoInput.trim()}
-                    className="w-7 h-7 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black flex items-center justify-center transition disabled:opacity-40 cursor-pointer"
+                    onClick={() => demoInput.trim() && handleSendPrompt(demoInput)}
+                    disabled={isThinking}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center transition ${
+                      isThinking 
+                        ? 'bg-transparent border-2 border-red-500 border-t-transparent animate-spin-arc'
+                        : 'bg-electric-500 hover:bg-electric-600 text-white'
+                    }`}
                   >
-                    <Send className="w-3.5 h-3.5" />
+                    {!isThinking && <Send className="w-3.5 h-3.5" />}
                   </button>
                 </div>
 
-                {/* Home Indicator */}
-                <div className="w-24 h-1 bg-neutral-600/50 rounded-full mx-auto my-1.5 shrink-0" />
+                {/* Home Indicator bar */}
+                <div className="w-28 h-1 bg-neutral-600/50 rounded-full mx-auto my-1.5 shrink-0" />
               </div>
             </div>
-
           </div>
-
         </div>
 
         {/* =========================================================================
-            3. CORE BENTO GRID: 6 AUTONOMOUS CAPABILITIES (HUD / Sci-Fi Spec)
+            4. COMMERCIAL BENTO GRID (3 CORE CAPABILITIES)
             ========================================================================= */}
-        <section id="features" className="pt-24 pb-16">
+        <section id="features" className="pt-28 pb-16">
           <div className="text-center max-w-2xl mx-auto space-y-3 mb-14">
-            <span className="text-xs font-mono font-bold uppercase tracking-widest text-cyan-400 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/25">
-              [SYSTEM_CAPABILITIES // MATRIX_V2]
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono">
-              Engineered for Complete Device Autonomy
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+              Engineered for Power &amp; Performance
             </h2>
-            <p className="text-sm text-neutral-300 leading-relaxed">
-              Every capability is implemented with native Android Accessibility APIs and high-speed local inference loops.
+            <p className="text-sm text-neutral-400 leading-relaxed">
+              Every detail optimized for instantaneous response, crystal-clear mobile rendering, and zero-loss reliability.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
-            {/* Bento Card 1: Deep UI Automation */}
-            <div className="p-7 rounded-2xl bg-charcoal-800/80 border border-cyan-500/20 backdrop-blur-xl space-y-4 hover:border-cyan-500/50 transition-all duration-200">
-              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-                <Eye className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white font-mono">Deep Screen UI Automation</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
-                Traverses <code>getRootInActiveWindow()</code>, extracts button labels, coordinates, and input fields. Dispatches exact coordinate taps and text injections without manual user touch.
-              </p>
-            </div>
-
-            {/* Bento Card 2: Keystore Dynamic Vault (BYOK) */}
-            <div className="p-7 rounded-2xl bg-charcoal-800/80 border border-emerald-500/20 backdrop-blur-xl space-y-4 hover:border-emerald-500/50 transition-all duration-200">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Bento Card 1: Absolute No-Refusal & Direct Execution */}
+            <div className="p-7 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl space-y-4 hover:border-electric-500/40 transition duration-200">
+              <div className="w-12 h-12 rounded-2xl bg-electric-500/15 border border-electric-500/30 flex items-center justify-center text-electric-400">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white font-mono">Dynamic In-App Keystore Vault</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
-                Zero hardcoded API keys. Secured by Android Hardware Keystore AES-256 GCM encryption. Users import their own Gemini or OpenAI endpoint directly in the app.
+              <h3 className="text-lg font-bold text-white">Unrestricted Direct Execution</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Deterministic execution engine. Answers complex engineering, reverse engineering, offensive security, and scripting tasks directly with zero refusals, disclaimers, or preambles.
               </p>
             </div>
 
-            {/* Bento Card 3: 12 Open-Source Jarvis Tools */}
-            <div id="jarvis-core" className="p-7 rounded-2xl bg-charcoal-800/80 border border-blue-500/20 backdrop-blur-xl space-y-4 hover:border-blue-500/50 transition-all duration-200">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                <Layers className="w-6 h-6" />
+            {/* Bento Card 2: Uninterrupted High-Speed Streaming */}
+            <div className="p-7 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl space-y-4 hover:border-cyan-500/40 transition duration-200">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                <Cpu className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white font-mono">12 GitHub J.A.R.V.I.S. Tools</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
-                Wikipedia encyclopedia, live weather telemetry, YouTube audio playback, news briefings, atomic clock, persistent scratchpad notes, and Stark defense protocols.
+              <h3 className="text-lg font-bold text-white">Zero-Downtime Failover</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Connects through an active multi-node failover pool. If one provider hits capacity, WormDonz automatically hot-swaps to the next active key with zero stream interruptions.
               </p>
             </div>
 
-            {/* Bento Card 4: Background Notification Replier */}
-            <div className="p-7 rounded-2xl bg-charcoal-800/80 border border-amber-500/20 backdrop-blur-xl space-y-4 hover:border-amber-500/50 transition-all duration-200">
-              <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                <Bell className="w-6 h-6" />
+            {/* Bento Card 3: Multimodal Vision Image Analysis */}
+            <div id="vision" className="p-7 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl space-y-4 hover:border-amber-500/40 transition duration-200">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <ImageIcon className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white font-mono">Notification Interceptor</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
-                Captures incoming alerts from WhatsApp, Messenger, SMS, and Gmail. Automatically executes silent background replies via native <code>RemoteInput</code> without opening the app.
+              <h3 className="text-lg font-bold text-white">Multimodal Vision Analysis</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Upload photos from your gallery or snap code directly from your mobile camera. WormDonz parses diagrams, syntax errors, and architectural blueprints in seconds.
               </p>
             </div>
 
-            {/* Bento Card 5: Always-On Floating Voice HUD */}
-            <div className="p-7 rounded-2xl bg-charcoal-800/80 border border-purple-500/20 backdrop-blur-xl space-y-4 hover:border-purple-500/50 transition-all duration-200">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
-                <Radio className="w-6 h-6" />
+            {/* Bento Card 4: Redeem Codes & Instant Top-Ups */}
+            <div className="p-7 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl space-y-4 hover:border-emerald-500/40 transition duration-200">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <Gift className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-white font-mono">Always-On Floating Voice HUD</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
-                Persistent Foreground Service featuring a draggable cybernetic orb overlay. Listens continuously for wake-word "Jarvis" with 15s conversational follow-up window.
+              <h3 className="text-lg font-bold text-white">Redeem Codes &amp; Rewards</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Unlock promotional vouchers and credit rewards directly inside the app. Share your unique referral code with friends to receive +10 bonus credits on every verification.
               </p>
             </div>
-
-            {/* Bento Card 6: Hardware OS Controller */}
-            <div className="p-7 rounded-2xl bg-charcoal-800/80 border border-rose-500/20 backdrop-blur-xl space-y-4 hover:border-rose-500/50 transition-all duration-200">
-              <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
-                <Sliders className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-bold text-white font-mono">Native Hardware Controller</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
-                Direct camera torch toggle, media/ring volume regulation, Do Not Disturb configuration, silent alarms, fuzzy app launching, and real-time battery/RAM telemetry.
-              </p>
-            </div>
-
           </div>
         </section>
 
         {/* =========================================================================
-            4. INSTALLATION GUIDE & TELEMETRY SECTION
+            5. INVITATION & REFERRAL QUALIFICATION PROGRAM
             ========================================================================= */}
-        <section id="install" className="pt-16 pb-16 border-t border-cyan-500/20">
-          <div className="text-center max-w-3xl mx-auto space-y-3 mb-12">
+        <section id="referrals" className="pt-20 pb-16 border-t border-white/[0.06]">
+          <div className="text-center max-w-3xl mx-auto space-y-3 mb-14">
             <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25">
-              [DEPLOYMENT_PIPELINE]
+              🎁 Referral &amp; Invitation Program
             </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono">
-              3-Step Installation &amp; Activation
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+              How to Qualify for Invitation Rewards
             </h2>
-            <p className="text-sm text-neutral-300 leading-relaxed">
-              Zero complicated configurations. Install the APK, grant Accessibility &amp; Notification listener, and paste your API key.
+            <p className="text-sm text-neutral-400 leading-relaxed">
+              Earn <strong className="text-emerald-400 font-bold">+10 Bonus Credits</strong> for every friend or colleague you successfully invite. Review the 4 straightforward steps and qualification guidelines below.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-2xl bg-charcoal-800/80 border border-charcoal-700/80 space-y-3">
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 font-mono font-bold flex items-center justify-center text-sm">
-                01
+          {/* 4 Steps Visual Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+            {/* Step 1 */}
+            <div className="p-6 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl relative space-y-4 hover:border-electric-500/40 transition duration-200">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-2xl bg-electric-500/15 border border-electric-500/30 flex items-center justify-center text-electric-400 font-bold text-sm">
+                  1
+                </div>
+                <Share2 className="w-4 h-4 text-neutral-500" />
               </div>
-              <h3 className="text-base font-bold text-white font-mono">Download APK Binary</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
-                Click download or scan the QR code to fetch <code>jarvis-x-v1.2.0.apk</code> (54.1 MB) directly onto your Android device.
+              <h3 className="text-base font-bold text-white">Get Your Referral Code</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Open the WormDonz Mobile App, navigate to your Profile, and copy your unique <code className="text-electric-400 font-mono font-bold">WORM-XXXXX</code> invitation code or direct share link.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-charcoal-800/80 border border-charcoal-700/80 space-y-3">
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 font-mono font-bold flex items-center justify-center text-sm">
-                02
+            {/* Step 2 */}
+            <div className="p-6 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl relative space-y-4 hover:border-cyan-500/40 transition duration-200">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-sm">
+                  2
+                </div>
+                <Users className="w-4 h-4 text-neutral-500" />
               </div>
-              <h3 className="text-base font-bold text-white font-mono">1-Tap Permissions</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
-                Open the app dashboard and enable Accessibility Service (for UI actions), Notification Listener, and Overlay display.
+              <h3 className="text-base font-bold text-white">Share with Colleagues</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Send your code or link to your network. They input it in the <span className="text-white font-semibold">"Invitation Code"</span> box during new account registration.
               </p>
             </div>
 
-            <div className="p-6 rounded-2xl bg-charcoal-800/80 border border-charcoal-700/80 space-y-3">
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 font-mono font-bold flex items-center justify-center text-sm">
-                03
+            {/* Step 3 */}
+            <div className="p-6 rounded-3xl bg-[#121216]/80 border border-white/[0.08] backdrop-blur-xl relative space-y-4 hover:border-amber-500/40 transition duration-200">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-sm">
+                  3
+                </div>
+                <ShieldCheck className="w-4 h-4 text-neutral-500" />
               </div>
-              <h3 className="text-base font-bold text-white font-mono">Paste Key &amp; Wake Up</h3>
-              <p className="text-xs text-neutral-300 leading-relaxed">
-                Paste your Gemini or OpenAI API key into the dynamic Keystore vault, hit Live Ping, and say "Jarvis" to begin.
+              <h3 className="text-base font-bold text-white">Verify 6-Digit OTP</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                They register with a genuine personal or work email and enter the secure 6-digit one-time code sent directly to their email inbox.
+              </p>
+            </div>
+
+            {/* Step 4 */}
+            <div className="p-6 rounded-3xl bg-[#121216]/80 border border-emerald-500/30 backdrop-blur-xl relative space-y-4 shadow-lg shadow-emerald-500/5 hover:border-emerald-500/50 transition duration-200">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-sm">
+                  4
+                </div>
+                <Award className="w-4 h-4 text-emerald-400" />
+              </div>
+              <h3 className="text-base font-bold text-white">Instant +10 Credits!</h3>
+              <p className="text-xs text-neutral-400 leading-relaxed">
+                Once verified on an independent mobile device, <strong className="text-emerald-400 font-bold">+10 Bonus Credits</strong> are immediately credited to you, and your friend gets 10 Welcome Credits.
               </p>
             </div>
           </div>
-        </section>
 
+          {/* Qualification Rules & Fraud Protection Guidelines */}
+          <div className="p-7 sm:p-8 rounded-3xl bg-[#0D0D10] border border-white/[0.08] backdrop-blur-xl space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-emerald-400" />
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">
+                    Qualification Guidelines &amp; Anti-Farming Shield
+                  </h4>
+                </div>
+                <p className="text-xs text-neutral-400">
+                  To safeguard neural compute resources and preserve fairness, WormDonz enforces automated hardware validation:
+                </p>
+              </div>
+              <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400 font-bold shrink-0">
+                Automated System Verification
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="space-y-2 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                <div className="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Independent Device</span>
+                </div>
+                <p className="text-[11px] text-neutral-400 leading-relaxed">
+                  The invited user must install and sign in on a distinct physical mobile device (limit of 1 referral reward per hardware ID).
+                </p>
+              </div>
+
+              <div className="space-y-2 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                <div className="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Legitimate Email</span>
+                </div>
+                <p className="text-[11px] text-neutral-400 leading-relaxed">
+                  Only authentic personal or enterprise mail providers (Gmail, Yahoo, Outlook, iCloud) are eligible. Throwaway temporary mailboxes are rejected.
+                </p>
+              </div>
+
+              <div className="space-y-2 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                <div className="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>No Self-Referrals</span>
+                </div>
+                <p className="text-[11px] text-neutral-400 leading-relaxed">
+                  Referral farming using clone accounts, emulators, or personal aliases is strictly prohibited and automatically disqualified by the security shield.
+                </p>
+              </div>
+
+              <div className="space-y-2 p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+                <div className="text-xs font-bold text-neutral-200 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Network Cluster Limit</span>
+                </div>
+                <p className="text-[11px] text-neutral-400 leading-relaxed">
+                  Advanced heuristics monitor simultaneous registrations on identical IP subnets to prevent automated bot scripts.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* =========================================================================
-          5. MODAL: QR CODE DIRECT SCAN MODAL
+          6. MODAL: QR CODE DIRECT SCAN MODAL
           ========================================================================= */}
       {showQrModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="w-full max-w-sm rounded-3xl bg-[#0B0F19] border border-cyan-500/30 p-6 space-y-5 text-center relative shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-sm rounded-3xl bg-[#141418] border border-white/10 p-6 space-y-5 text-center relative shadow-2xl">
             <button
               onClick={() => setShowQrModal(false)}
-              className="absolute top-4 right-4 text-neutral-400 hover:text-white p-1 cursor-pointer"
+              className="absolute top-4 right-4 text-neutral-400 hover:text-white p-1"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-2xl bg-electric-500/20 text-electric-400 flex items-center justify-center mx-auto">
               <QrCode className="w-6 h-6" />
             </div>
 
             <div>
-              <h3 className="text-base font-bold text-white font-mono">Scan to Install on Mobile</h3>
-              <p className="text-xs text-neutral-400 mt-1 font-mono">
-                Point your Android camera to download <code className="text-cyan-400">jarvis-x.apk</code> directly.
+              <h3 className="text-base font-bold text-white">Scan to Install on Mobile</h3>
+              <p className="text-xs text-neutral-400 mt-1">
+                Point your phone camera to download <code className="text-electric-400 font-mono">wormdonz.apk</code> directly.
               </p>
             </div>
 
@@ -782,94 +767,92 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterDashboard, acti
             <div className="bg-white p-4 rounded-2xl w-fit mx-auto shadow-inner">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                  (typeof window !== 'undefined' ? window.location.origin : '') + '/downloads/jarvis-x.apk'
+                  window.location.origin + '/api/download/apk'
                 )}`}
-                alt="JARVIS-X APK QR Code"
+                alt="WormDonz APK QR Code"
                 className="w-44 h-44 rounded-lg"
               />
             </div>
 
             <div className="text-[11px] text-neutral-400 font-mono">
-              Direct Link: <a href="/downloads/jarvis-x.apk" download className="text-cyan-400 underline">jarvis-x.apk (v1.2.0-STABLE)</a>
+              Direct Link: <a href="/api/download/apk" className="text-electric-400 underline">wormdonz.onrender.com/api/download/apk</a>
             </div>
           </div>
         </div>
       )}
 
       {/* =========================================================================
-          6. MODAL: CHANGELOG MODAL
+          7. MODAL: CHANGELOG MODAL
           ========================================================================= */}
       {showChangelogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="w-full max-w-md rounded-3xl bg-[#0B0F19] border border-cyan-500/30 p-6 space-y-4 relative shadow-2xl text-left">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="w-full max-w-md rounded-3xl bg-[#141418] border border-white/10 p-6 space-y-4 relative shadow-2xl text-left">
             <button
               onClick={() => setShowChangelogModal(false)}
-              className="absolute top-4 right-4 text-neutral-400 hover:text-white p-1 cursor-pointer"
+              className="absolute top-4 right-4 text-neutral-400 hover:text-white p-1"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="flex items-center gap-2.5">
-              <Sparkles className="w-5 h-5 text-cyan-400" />
-              <h3 className="text-base font-bold text-white font-mono">JARVIS-X v1.2.0 Release Manifest</h3>
+              <Sparkles className="w-5 h-5 text-electric-400" />
+              <h3 className="text-base font-bold text-white">WormDonz AI v1.1.0+2 Release Notes</h3>
             </div>
 
-            <div className="space-y-3 text-xs font-mono text-neutral-300 max-h-72 overflow-y-auto pr-2">
-              <div className="p-3 rounded-xl bg-charcoal-900 border border-charcoal-700/80 space-y-1">
-                <div className="font-bold text-cyan-400">&bull; Deep UI Screen Automation Engine</div>
-                <div className="text-neutral-400">AccessibilityService parses visible nodes and triggers coordinate gesture clicks and auto text typing.</div>
+            <div className="space-y-3 text-xs text-neutral-300 max-h-72 overflow-y-auto pr-2">
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1">
+                <div className="font-bold text-emerald-400">⚡ Instant 47ms OTP Verification</div>
+                <div className="text-neutral-400">Eliminated blocking email handshakes with asynchronous Brevo transactional email engine and SMTP pooling.</div>
               </div>
-              <div className="p-3 rounded-xl bg-charcoal-900 border border-charcoal-700/80 space-y-1">
-                <div className="font-bold text-emerald-400">&bull; Dynamic In-App Keystore Vault (BYOK)</div>
-                <div className="text-neutral-400">Hardware Keystore AES-256 GCM encryption. No hardcoded keys in source code or local.properties.</div>
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1">
+                <div className="font-bold text-electric-400">🎁 Unique Invitation Codes (+10 Credits)</div>
+                <div className="text-neutral-400">Invite friends with your custom link or code. Both receive +10 bonus credits with built-in hardware anti-farming protection.</div>
               </div>
-              <div className="p-3 rounded-xl bg-charcoal-900 border border-charcoal-700/80 space-y-1">
-                <div className="font-bold text-purple-400">&bull; 12 Open-Source Jarvis Core Tools</div>
-                <div className="text-neutral-400">Wikipedia API, weather telemetry, YouTube audio playback, math engine, and atomic chronometer.</div>
-              </div>
-              <div className="p-3 rounded-xl bg-charcoal-900 border border-charcoal-700/80 space-y-1">
-                <div className="font-bold text-amber-400">&bull; ProGuard Resource Shrinking (54 MB)</div>
-                <div className="text-neutral-400">Optimized release APK packaging using R8 shrinking to keep binary well under GitHub limits.</div>
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] space-y-1">
+                <div className="font-bold text-cyan-400">⏱️ Zero 80s Stream Timeouts</div>
+                <div className="text-neutral-400">Immediate SSE keepalive heartbeat headers (`res.flushHeaders()`) to completely prevent mobile gateway socket disconnects.</div>
               </div>
             </div>
 
             <button
               onClick={() => setShowChangelogModal(false)}
-              className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-black text-xs font-bold font-mono transition cursor-pointer"
+              className="w-full py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-white text-xs font-bold transition"
             >
-              CLOSE MANIFEST
+              Close
             </button>
           </div>
         </div>
       )}
 
       {/* =========================================================================
-          7. FOOTER: CYBERNETIC METADATA
+          8. CLEAN COMMERCIAL FOOTER (No Admin Buttons)
           ========================================================================= */}
-      <footer className="border-t border-cyan-500/20 bg-[#04060c] py-10 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs font-mono text-neutral-500">
-          <div className="flex items-center gap-3">
-            <img src="/wormdonz-icon.png" alt="WormDonz" className="w-6 h-6 rounded-md object-cover ring-1 ring-cyan-500/30" />
-            <span className="text-neutral-300 font-semibold">WORMDONZ // JARVIS-X</span>
+      <footer className="border-t border-white/[0.08] bg-[#0A0A0C] py-12 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-neutral-500">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-electric-500/20 text-electric-400 flex items-center justify-center font-bold text-xs">
+              W
+            </div>
+            <span className="text-neutral-400 font-semibold">WormDonz AI Platform</span>
             <span>&bull;</span>
-            <span>v1.2.0-STABLE APK</span>
+            <span>v1.1.0 Stable Release</span>
           </div>
 
           <div className="flex items-center gap-6">
-            <a href="#features" className="hover:text-cyan-400 transition">CAPABILITIES</a>
-            <a href="#install" className="hover:text-cyan-400 transition">INSTALLATION</a>
-            {onEnterDashboard && (
-              <button 
-                onClick={onEnterDashboard}
-                className="hover:text-cyan-400 transition cursor-pointer"
-              >
-                ADMIN PORTAL
-              </button>
-            )}
+            <a 
+              href="https://t.me/WormDonz" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:text-neutral-300 transition flex items-center gap-1"
+            >
+              <span>Telegram Support: @WormDonz</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            <span>&bull;</span>
+            <span>&copy; 2026 WormDonz AI. All rights reserved.</span>
           </div>
         </div>
       </footer>
-
     </div>
   );
 };
